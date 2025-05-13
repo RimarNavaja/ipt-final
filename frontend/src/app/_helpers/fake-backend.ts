@@ -97,10 +97,10 @@ export class FakeBackendInterceptor implements HttpInterceptor {
       if (!account) return unauthorized();
 
       //replace old refresh token with a new one and save
-      account.refreshToken = account.refreshToken.filter(
+      account.refreshTokens = account.refreshTokens.filter(
         (x) => x !== refreshToken
       );
-      account.refreshToken.push(generateRefreshToken());
+      account.refreshTokens.push(generateRefreshToken());
       localStorage.setItem(accountsKey, JSON.stringify(accounts));
 
       return ok({
@@ -302,7 +302,7 @@ export class FakeBackendInterceptor implements HttpInterceptor {
     function updateAccount() {
       if (!isAuthenticated()) return unauthorized();
 
-      const params = body;
+      let params = body;
       let account = accounts.find((x) => x.id === idFromUrl());
 
       //user accounts can update own profile and admin accounts can update all profiles
