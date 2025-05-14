@@ -1,0 +1,35 @@
+<div class="card">
+  <div class="card-header">
+    <h2 class="mb-0">DEPARTMENTS</h2>
+  </div>
+  <div class="card-body">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+          <th>Employee Count</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let dept of departments">
+          <td>{{dept.name}}</td>
+          <td>{{dept.description}}</td>
+          <td>{{dept.employeeCount}}</td>
+          <td>
+            <a class="btn btn-primary" (click)="edit(dept.id)">Edit</a>
+          </td>
+        </tr>
+        <tr *ngIf="!departments || departments.length === 0">
+          <td colspan="4" class="text-center">
+            <span class="spinner-border spinner-border-lg align-center"></span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="d-flex justify-content-end mt-3">
+      <a *ngIf="account()?.role === 'Admin'" class="btn btn-primary" (click)="add()">Add Department</a>
+    </div>
+  </div>
+</div>

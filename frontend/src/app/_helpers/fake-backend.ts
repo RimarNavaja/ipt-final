@@ -8,15 +8,42 @@ import {
   HTTP_INTERCEPTORS,
   HttpHeaders,
 } from "@angular/common/http";
-import { generate, Observable, of, throwError } from "rxjs";
-import { delay, materialize, dematerialize } from "rxjs/operators";
+import { Observable, of, throwError } from "rxjs";
+import { delay, materialize, dematerialize, mergeMap } from "rxjs/operators";
 
 import { AlertService } from "@app/_services";
 import { Role } from "@app/_models";
 
 // array in local storage for accounts
 const accountsKey = "angular-18-signup-verification-boilerplate-accounts";
-let accounts = JSON.parse(localStorage.getItem(accountsKey)) || [];
+let accounts = JSON.parse(localStorage.getItem(accountsKey)) || [
+  { id: 1, title: 'Mr', firstName: 'Admin', lastName: 'User', email: 'admin@example.com', password: 'admin', role: 'Admin', isVerified: true, refreshTokens: [], employeeId: 1, isActive: true },
+  { id: 2, title: 'Mr', firstName: 'Normal', lastName: 'User', email: 'user@example.com', password: 'user', role: 'User', isVerified: true, refreshTokens: [], employeeId: 2, isActive: true }
+];
+
+// arrays for employees, departments, workflows, and requests
+const employeesKey = "employees";
+const departmentsKey = "departments";
+const workflowsKey = "workflows";
+const requestsKey = "requests";
+
+let employees = JSON.parse(localStorage.getItem(employeesKey)) || [
+  { id: 1, employeeId: 'EMP001', userId: 1, position: 'Developer', departmentId: 1, hireDate: '2025-01-01', status: 'Active' },
+  { id: 2, employeeId: 'EMP002', userId: 2, position: 'Designer', departmentId: 2, hireDate: '2025-02-01', status: 'Active' }
+];
+
+let departments = JSON.parse(localStorage.getItem(departmentsKey)) || [
+  { id: 1, name: 'Engineering', description: 'Software development team', employeeCount: 1 },
+  { id: 2, name: 'Marketing', description: 'Marketing team', employeeCount: 1 }
+];
+
+let workflows = JSON.parse(localStorage.getItem(workflowsKey)) || [
+  { id: 1, employeeId: 1, type: 'Onboarding', details: { task: 'Setup workstation' }, status: 'Pending' }
+];
+
+let requests = JSON.parse(localStorage.getItem(requestsKey)) || [
+  { id: 1, employeeId: 2, type: 'Equipment', requestItems: [{ name: 'Laptop', quantity: 1 }], status: 'Pending' }
+];
 
 @Injectable()
 export class FakeBackendInterceptor implements HttpInterceptor {
@@ -60,6 +87,51 @@ export class FakeBackendInterceptor implements HttpInterceptor {
           return updateAccount();
         case url.match(/\/accounts\/\d+$/) && method === "DELETE":
           return deleteAccount();
+          
+        // Employee routes
+        case url.endsWith('/employees') && method === 'GET':
+          return getEmployees();
+        case url.endsWith('/employees') && method === 'POST':
+          return createEmployee();
+        case url.match(/\/employees\/\d+$/) && method === 'GET':
+          return getEmployeeById();
+        case url.match(/\/employees\/\d+$/) && method === 'PUT':
+          return updateEmployee();
+        case url.match(/\/employees\/\d+$/) && method === 'DELETE':
+          return deleteEmployee();
+        case url.match(/\/employees\/\d+\/transfer$/) && method === 'POST':
+          return transferEmployee();
+          
+        // Department routes
+        case url.endsWith('/departments') && method === 'GET':
+          return getDepartments();
+        case url.endsWith('/departments') && method === 'POST':
+          return createDepartment();
+        case url.match(/\/departments\/\d+$/) && method === 'PUT':
+          return updateDepartment();
+        case url.match(/\/departments\/\d+$/) && method === 'DELETE':
+          return deleteDepartment();
+          
+        // Workflow routes
+        case url.match(/\/workflows\/employee\/\d+$/) && method === 'GET':
+          return getEmployeeWorkflows();
+        case url.endsWith('/workflows') && method === 'POST':
+          return createWorkflow();
+        case url.match(/\/workflows\/\d+$/) && method === 'PUT':
+          return updateWorkflow();
+        case url.match(/\/workflows\/\d+\/status$/) && method === 'PUT':
+          return updateWorkflowStatus();
+          
+        // Request routes
+        case url.endsWith('/requests') && method === 'GET':
+          return getRequests();
+        case url.endsWith('/requests') && method === 'POST':
+          return createRequest();
+        case url.match(/\/requests\/\d+$/) && method === 'PUT':
+          return updateRequest();
+        case url.match(/\/requests\/\d+$/) && method === 'DELETE':
+          return deleteRequest();
+          
         default:
           // pass through any requests not handled above
           return next.handle(request);
@@ -67,7 +139,6 @@ export class FakeBackendInterceptor implements HttpInterceptor {
     }
 
     //route functions
-
     function authenticate() {
       const { email, password } = body;
       const account = accounts.find(
@@ -77,7 +148,7 @@ export class FakeBackendInterceptor implements HttpInterceptor {
       if (!account) return error("Email or password is incorrect");
 
       //add refresh token to account
-      account.refreshToken.push(generateRefreshToken());
+      account.refreshTokens.push(generateRefreshToken());
       localStorage.setItem(accountsKey, JSON.stringify(accounts));
 
       return ok({
@@ -91,7 +162,7 @@ export class FakeBackendInterceptor implements HttpInterceptor {
 
       if (!refreshToken) return unauthorized();
       const account = accounts.find((x) =>
-        x.refreshToken.includes(refreshToken)
+        x.refreshTokens.includes(refreshToken)
       );
 
       if (!account) return unauthorized();
@@ -114,7 +185,7 @@ export class FakeBackendInterceptor implements HttpInterceptor {
 
       const refreshToken = getRefreshToken();
       const account = accounts.find((x) =>
-        x.refreshToken.includes(refreshToken)
+        x.refreshTokens.includes(refreshToken)
       );
 
       //revoke token and save
@@ -156,7 +227,7 @@ export class FakeBackendInterceptor implements HttpInterceptor {
       account.dateCreated = new Date().toISOString();
       account.verificationToken = new Date().getTime().toString();
       account.isVerified = false;
-      account.refreshToken = [];
+      account.refreshTokens = [];
       delete account.confirmPassword;
       accounts.push(account);
 
@@ -293,6 +364,10 @@ export class FakeBackendInterceptor implements HttpInterceptor {
       account.dateCreated = new Date().toISOString();
       account.isVerified = false;
       account.refreshTokens = [];
+      
+      // Set isActive to true by default if not specified
+      account.isActive = account.isActive !== undefined ? account.isActive : true;
+      
       accounts.push(account);
       localStorage.setItem(accountsKey, JSON.stringify(accounts));
 
@@ -340,6 +415,331 @@ export class FakeBackendInterceptor implements HttpInterceptor {
       return ok();
     }
 
+    // Employee functions
+    function getEmployees() {
+      if (!isAuthenticated()) return unauthorized();
+      return ok(employees);
+    }
+
+    function createEmployee() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const employee = { 
+        id: employees.length ? Math.max(...employees.map(x => x.id)) + 1 : 1,
+        ...body 
+      };
+      
+      employees.push(employee);
+      localStorage.setItem(employeesKey, JSON.stringify(employees));
+      
+      return ok(employee);
+    }
+
+    function getEmployeeById() {
+      if (!isAuthenticated()) return unauthorized();
+      
+      const id = idFromUrl();
+      const employee = employees.find(e => e.id === id);
+      
+      if (!employee) return error('Employee not found');
+      
+      return ok(employee);
+    }
+
+    function updateEmployee() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const id = idFromUrl();
+      const employeeIndex = employees.findIndex(e => e.id === id);
+      
+      if (employeeIndex === -1) return error('Employee not found');
+      
+      employees[employeeIndex] = { 
+        ...employees[employeeIndex],
+        ...body 
+      };
+      
+      localStorage.setItem(employeesKey, JSON.stringify(employees));
+      
+      return ok(employees[employeeIndex]);
+    }
+
+    function deleteEmployee() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const id = idFromUrl();
+      
+      if (!employees.find(e => e.id === id)) return error('Employee not found');
+      
+      employees = employees.filter(e => e.id !== id);
+      localStorage.setItem(employeesKey, JSON.stringify(employees));
+      
+      return ok({ message: 'Employee deleted' });
+    }
+
+    function transferEmployee() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const id = parseInt(url.split('/')[2]);
+      const employee = employees.find(e => e.id === id);
+      
+      if (!employee) return error('Employee not found');
+      
+      // Instead of changing department immediately, we return the current employee
+      // The actual transfer will happen when the workflow is approved
+      return ok(employee);
+    }
+
+    // Department functions
+    function getDepartments() {
+      if (!isAuthenticated()) return unauthorized();
+      return ok(departments);
+    }
+
+    function createDepartment() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const department = {
+        id: departments.length ? Math.max(...departments.map(d => d.id)) + 1 : 1,
+        ...body,
+        employeeCount: 0
+      };
+      
+      departments.push(department);
+      localStorage.setItem(departmentsKey, JSON.stringify(departments));
+      
+      return ok(department);
+    }
+
+    function updateDepartment() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const id = idFromUrl();
+      const deptIndex = departments.findIndex(d => d.id === id);
+      
+      if (deptIndex === -1) return error('Department not found');
+      
+      departments[deptIndex] = {
+        ...departments[deptIndex],
+        ...body,
+        employeeCount: departments[deptIndex].employeeCount
+      };
+      
+      localStorage.setItem(departmentsKey, JSON.stringify(departments));
+      
+      return ok(departments[deptIndex]);
+    }
+
+    function deleteDepartment() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const id = idFromUrl();
+      
+      if (!departments.find(d => d.id === id)) return error('Department not found');
+      
+      departments = departments.filter(d => d.id !== id);
+      localStorage.setItem(departmentsKey, JSON.stringify(departments));
+      
+      return ok({ message: 'Department deleted' });
+    }
+
+    // Workflow functions
+    function getEmployeeWorkflows() {
+      if (!isAuthenticated()) return unauthorized();
+      
+      const employeeId = parseInt(url.split('/').pop());
+      const employeeWorkflows = workflows.filter(w => w.employeeId === employeeId);
+      
+      return ok(employeeWorkflows);
+    }
+
+    function createWorkflow() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const workflow = {
+        id: workflows.length ? Math.max(...workflows.map(w => w.id)) + 1 : 1,
+        ...body
+      };
+      
+      workflows.push(workflow);
+      localStorage.setItem(workflowsKey, JSON.stringify(workflows));
+      
+      return ok(workflow);
+    }
+
+    function updateWorkflow() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const id = idFromUrl();
+      const workflowIndex = workflows.findIndex(w => w.id === id);
+      
+      if (workflowIndex === -1) return error('Workflow not found');
+      
+      // Create the updated workflow object based on existing and new data
+      const updatedWorkflow = {
+        ...workflows[workflowIndex],
+        ...body // body contains the new status and other workflow properties
+      };
+      
+      // Check if the status is being updated to Approved or Rejected
+      if (updatedWorkflow.status === 'Approved' || updatedWorkflow.status === 'Rejected') {
+        // Handle department transfer logic if it's an approved department transfer
+        if (updatedWorkflow.type === 'Department Transfer' && updatedWorkflow.status === 'Approved') {
+          const employeeId = updatedWorkflow.employeeId;
+          const employee = employees.find(e => e.id === employeeId);
+          
+          if (employee && updatedWorkflow.details && updatedWorkflow.details.newDepartment) {
+            const newDepartmentName = updatedWorkflow.details.newDepartment;
+            const newDepartment = departments.find(d => d.name === newDepartmentName);
+            
+            if (newDepartment) {
+              // Update previous department employee count
+              const oldDepartment = departments.find(d => d.id === employee.departmentId);
+              if (oldDepartment && oldDepartment.employeeCount > 0) {
+                oldDepartment.employeeCount--;
+              }
+
+              // Update employee's department
+              employee.departmentId = newDepartment.id;
+              
+              // Update new department employee count
+              newDepartment.employeeCount = (newDepartment.employeeCount || 0) + 1;
+              
+              localStorage.setItem(employeesKey, JSON.stringify(employees));
+              localStorage.setItem(departmentsKey, JSON.stringify(departments));
+            }
+          }
+        }
+        
+        // Remove the workflow from the list
+        workflows = workflows.filter(w => w.id !== id);
+      } else {
+        // Otherwise, just update the workflow in place
+        workflows[workflowIndex] = updatedWorkflow;
+      }
+      
+      localStorage.setItem(workflowsKey, JSON.stringify(workflows));
+      
+      // Return the workflow object that was processed (it might have been removed from the list)
+      return ok(updatedWorkflow); 
+    }
+    
+    function updateWorkflowStatus() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const id = idFromUrl();
+      const workflowIndex = workflows.findIndex(w => w.id === id);
+      
+      if (workflowIndex === -1) return error('Workflow not found');
+      
+      const workflow = workflows[workflowIndex];
+      const newStatus = body.status;
+      
+      // Handle department transfer when approved
+      if (workflow.type === 'Department Transfer' && newStatus === 'Approved') {
+        const employeeId = workflow.employeeId;
+        const employee = employees.find(e => e.id === employeeId);
+        
+        if (employee) {
+          // Update the employee's department
+          const newDepartmentName = workflow.details.newDepartment;
+          const newDepartment = departments.find(d => d.name === newDepartmentName);
+          
+          if (newDepartment) {
+            employee.departmentId = newDepartment.id;
+            localStorage.setItem(employeesKey, JSON.stringify(employees));
+          }
+        }
+      }
+      
+      // Update workflow status
+      workflow.status = newStatus;
+      
+      // If workflow is approved or rejected, remove it from the list
+      if (newStatus === 'Approved' || newStatus === 'Rejected') {
+        workflows = workflows.filter(w => w.id !== id);
+      } else {
+        workflows[workflowIndex] = workflow;
+      }
+      
+      localStorage.setItem(workflowsKey, JSON.stringify(workflows));
+      
+      return ok(workflow);
+    }
+
+    // Request functions
+    function getRequests() {
+      if (!isAuthenticated()) return unauthorized(); // All authenticated users can attempt to get requests
+
+      const acc = currentAccount();
+      if (!acc) return unauthorized(); // Should be caught by isAuthenticated, but good practice
+
+      if (acc.role === Role.Admin) {
+        // Admin sees all requests
+        return ok(requests);
+      } else {
+        // Regular user sees only their own requests
+        const currentUserEmployee = employees.find(e => e.userId === acc.id);
+        if (!currentUserEmployee) {
+          // If the user is not linked to an employee record, they have no requests
+          return ok([]); 
+        }
+        const userRequests = requests.filter(r => r.employeeId === currentUserEmployee.id);
+        return ok(userRequests);
+      }
+    }
+
+    function createRequest() {
+      if (!isAuthenticated()) return unauthorized();
+      
+      const account = currentAccount();
+      const employee = employees.find(e => e.userId === account.id);
+      
+      if (!employee) return error('Employee not found for current user');
+      
+      const request = {
+        id: requests.length ? Math.max(...requests.map(r => r.id)) + 1 : 1,
+        employeeId: employee.id,
+        ...body
+      };
+      
+      requests.push(request);
+      localStorage.setItem(requestsKey, JSON.stringify(requests));
+      
+      return ok(request);
+    }
+
+    function updateRequest() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const id = idFromUrl();
+      const reqIndex = requests.findIndex(r => r.id === id);
+      
+      if (reqIndex === -1) return error('Request not found');
+      
+      requests[reqIndex] = {
+        ...requests[reqIndex],
+        ...body
+      };
+      
+      localStorage.setItem(requestsKey, JSON.stringify(requests));
+      
+      return ok(requests[reqIndex]);
+    }
+
+    function deleteRequest() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const id = idFromUrl();
+      
+      if (!requests.find(r => r.id === id)) return error('Request not found');
+      
+      requests = requests.filter(r => r.id !== id);
+      localStorage.setItem(requestsKey, JSON.stringify(requests));
+      
+      return ok({ message: 'Request deleted' });
+    }
+
     //helper functions
 
     function ok(body?) {
@@ -372,6 +772,7 @@ export class FakeBackendInterceptor implements HttpInterceptor {
         role,
         dateCreated,
         isVerified,
+        isActive,
       } = account;
       return {
         id,
@@ -382,6 +783,7 @@ export class FakeBackendInterceptor implements HttpInterceptor {
         role,
         dateCreated,
         isVerified,
+        isActive,
       };
     }
 

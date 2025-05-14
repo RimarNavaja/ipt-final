@@ -1,0 +1,25 @@
+<div class="modal-backdrop fade show" style="z-index: 1040;"></div>
+<div class="modal fade show d-block" tabindex="-1" role="dialog" aria-labelledby="transferModalLabel" aria-hidden="true" style="z-index: 1050;">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="transferModalLabel">Transfer Employee: {{employee?.employeeId}}</h5>
+        <button type="button" class="btn-close" aria-label="Close" (click)="cancel()"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger" *ngIf="errorMessage">{{errorMessage}}</div>
+        
+        <div class="mb-3">
+          <label class="form-label">Department</label>
+          <select class="form-select" [(ngModel)]="selectedDepartmentId" (change)="onDepartmentChange($event)">
+            <option *ngFor="let dept of departments" [ngValue]="dept.id">{{dept.name}}</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="cancel()">Cancel</button>
+        <button type="button" class="btn btn-warning" (click)="transfer()">Transfer</button>
+      </div>
+    </div>
+  </div>
+</div>
