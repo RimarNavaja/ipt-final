@@ -11,6 +11,14 @@ const adminModule = () =>
   import("./admin/admin.module").then((x) => x.AdminModule);
 const profileModule = () =>
   import("./profile/profile.module").then((x) => x.ProfileModule);
+const employeesModule = () =>
+  import("./employees/employees.module").then((x) => x.EmployeesModule);
+const departmentsModule = () =>
+  import("./departments/departments.module").then((x) => x.DepartmentsModule);
+const workflowsModule = () =>
+  import("./workflows/workflows.module").then((x) => x.WorkflowsModule);
+const requestsModule = () =>
+  import("./requests/requests.module").then((x) => x.RequestsModule);
 
 const routes: Routes = [
   { path: "", component: HomeComponent, canActivate: [AuthGuard] },
@@ -21,6 +29,26 @@ const routes: Routes = [
     loadChildren: adminModule,
     canActivate: [AuthGuard],
     data: { roles: [Role.Admin] },
+  },
+  { 
+    path: "employees", 
+    loadChildren: employeesModule, 
+    canActivate: [AuthGuard] 
+  },
+  { 
+    path: "departments", 
+    loadChildren: departmentsModule, 
+    canActivate: [AuthGuard] 
+  },
+  { 
+    path: "workflows", 
+    loadChildren: workflowsModule, 
+    canActivate: [AuthGuard] 
+  },
+  { 
+    path: "requests", 
+    loadChildren: requestsModule, 
+    canActivate: [AuthGuard] 
   },
 
   //otherwise redirect to home

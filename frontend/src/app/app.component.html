@@ -24,7 +24,43 @@
       >
         Admin</a
       >
-      <a (click)="logout()" class="nav-item nav-link"> logout</a>
+      <a (click)="logout()" class="nav-item nav-link">Logout</a>
+    </div>
+  </nav>
+
+  <!-- module navigation -->
+  <nav class="navbar navbar-expand navbar-light bg-light" *ngIf="account">
+    <div class="container-fluid">
+      <div class="navbar-nav ms-auto">
+        <a
+          routerLink="/admin/accounts"
+          routerLinkActive="active border border-primary rounded"
+          class="nav-item nav-link px-3 mx-1"
+        >
+          Accounts
+        </a>
+        <a
+          routerLink="/employees"
+          routerLinkActive="active border border-primary rounded"
+          class="nav-item nav-link px-3 mx-1"
+        >
+          Employees
+        </a>
+        <a
+          routerLink="/departments"
+          routerLinkActive="active border border-primary rounded"
+          class="nav-item nav-link px-3 mx-1"
+        >
+          Departments
+        </a>
+        <a
+          routerLink="/requests"
+          routerLinkActive="active border border-primary rounded"
+          class="nav-item nav-link px-3 mx-1"
+        >
+          Requests
+        </a>
+      </div>
     </div>
   </nav>
 
@@ -35,5 +71,7 @@
   <alert></alert>
 
   <!-- main router outlet -->
-  <router-outlet></router-outlet>
+  <div class="container mt-4">
+    <router-outlet></router-outlet>
+  </div>
 </div>

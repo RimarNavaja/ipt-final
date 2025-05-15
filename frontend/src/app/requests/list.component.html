@@ -1,51 +1,79 @@
 <div class="card">
-  <div class="card-header">Requests</div>
+  <div class="card-header">
+    <h2 class="mb-0">REQUESTS</h2>
+  </div>
   <div class="card-body">
-    <div class="table-responsive">
-      <table class="table table-striped">
-        <thead>
-          <tr>
-            <th>Type</th>
-            <th>Employee</th>
-            <th>Items</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let request of requests">
-            <td>{{ request.type }}</td>
-            <td>{{ request.employee?.employeeId }}</td>
-            <td>
-              <ul>
-                <li *ngFor="let item of request.requestItems">
-                  {{ item.name }}(x{{ item.quantity }})
-                </li>
-              </ul>
-            </td>
-            <td>{{ request.status }}</td>
-            <td>
-              <button
-                *ngIf="account()?.role === 'Admin'"
-                class="btn btn-sm btn-primary me-1"
-                (click)="edit(request.id)"
-              >
-                Edit
-              </button>
-              <button
-                *ngIf="account()?.role === 'Admin'"
-                class="btn btn-sm btn-danger"
-                (click)="delete(request.id)"
-              >
-                Delete
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Employee</th>
+          <th>Items</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let request of requests">
+          <td>{{ request.type }}</td>
+          <td>{{ request.employee?.employeeId }}</td>
+          <td>
+            <ul class="list-unstyled mb-0">
+              <li *ngFor="let item of request.requestItems">
+                {{ item.name }} (x{{ item.quantity }})
+              </li>
+            </ul>
+          </td>
+          <td>
+            <span class="badge text-white p-2 rounded-pill" 
+                  [ngClass]="{
+                    'bg-success': request.status === 'Approved', 
+                    'bg-danger': request.status === 'Rejected',
+                    'bg-warning': request.status === 'Pending'
+                  }">
+              {{ request.status }}
+            </span>
+          </td>
+          <td>
+            <a *ngIf="account()?.role === 'Admin'" class="btn btn-primary" (click)="edit(request.id)">
+              Edit
+            </a>
+            <a *ngIf="account()?.role === 'Admin'" class="btn btn-danger ms-1" (click)="delete(request.id)">
+              Delete
+            </a>
+          </td>
+        </tr>
+        <tr *ngIf="loading">
+          <td colspan="5" class="text-center p-5">
+            <span class="spinner-border spinner-border-lg align-center"></span>
+          </td>
+        </tr>
+        <tr *ngIf="!loading && (!requests || requests.length === 0)">
+          <td colspan="5" class="text-center p-3">
+            <p class="mb-0">No requests found</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="d-flex justify-content-end mt-3">
+      <button type="button" class="btn btn-primary" (click)="openAddModal()">
+        Add Request
+      </button>
     </div>
-    <button class="btn btn-primary float-end" (click)="add()">
-      Add request
-    </button>
+  </div>
+</div>
+
+<!-- Add Request Modal -->
+<div class="modal fade" #addRequestModal tabindex="-1" aria-labelledby="addRequestModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addRequestModalLabel">Add New Request</h5>
+        <button type="button" class="btn-close" (click)="closeAddModal()" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <app-add-edit-request (requestSaved)="handleRequestSaved()" (cancelled)="closeAddModal()"></app-add-edit-request>
+      </div>
+    </div>
   </div>
 </div>
