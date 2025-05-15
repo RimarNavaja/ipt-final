@@ -8,8 +8,8 @@ import {
   HTTP_INTERCEPTORS,
   HttpHeaders,
 } from "@angular/common/http";
-import { generate, Observable, of, throwError } from "rxjs";
-import { delay, materialize, dematerialize } from "rxjs/operators";
+import { Observable, of, throwError } from "rxjs";
+import { delay, materialize, dematerialize, mergeMap } from "rxjs/operators";
 
 import { AlertService } from "@app/_services";
 import { Role } from "@app/_models";
@@ -17,6 +17,30 @@ import { Role } from "@app/_models";
 // array in local storage for accounts
 const accountsKey = "angular-18-signup-verification-boilerplate-accounts";
 let accounts = JSON.parse(localStorage.getItem(accountsKey)) || [];
+
+// arrays for employees, departments, workflows, and requests
+const employeesKey = "employees";
+const departmentsKey = "departments";
+const workflowsKey = "workflows";
+const requestsKey = "requests";
+
+let employees = JSON.parse(localStorage.getItem(employeesKey)) || [
+  { id: 1, employeeId: 'EMP001', userId: 1, position: 'Developer', departmentId: 1, hireDate: '2025-01-01', status: 'Active' },
+  { id: 2, employeeId: 'EMP002', userId: 2, position: 'Designer', departmentId: 2, hireDate: '2025-02-01', status: 'Active' }
+];
+
+let departments = JSON.parse(localStorage.getItem(departmentsKey)) || [
+  { id: 1, name: 'Engineering', description: 'Software development team', employeeCount: 1 },
+  { id: 2, name: 'Marketing', description: 'Marketing team', employeeCount: 1 }
+];
+
+let workflows = JSON.parse(localStorage.getItem(workflowsKey)) || [
+  { id: 1, employeeId: 1, type: 'Onboarding', details: { task: 'Setup workstation' }, status: 'Pending' }
+];
+
+let requests = JSON.parse(localStorage.getItem(requestsKey)) || [
+  { id: 1, employeeId: 2, type: 'Equipment', requestItems: [{ name: 'Laptop', quantity: 1 }], status: 'Pending' }
+];
 
 @Injectable()
 export class FakeBackendInterceptor implements HttpInterceptor {
@@ -60,6 +84,47 @@ export class FakeBackendInterceptor implements HttpInterceptor {
           return updateAccount();
         case url.match(/\/accounts\/\d+$/) && method === "DELETE":
           return deleteAccount();
+          
+        // Employee routes
+        case url.endsWith('/employees') && method === 'GET':
+          return getEmployees();
+        case url.endsWith('/employees') && method === 'POST':
+          return createEmployee();
+        case url.match(/\/employees\/\d+$/) && method === 'GET':
+          return getEmployeeById();
+        case url.match(/\/employees\/\d+$/) && method === 'PUT':
+          return updateEmployee();
+        case url.match(/\/employees\/\d+$/) && method === 'DELETE':
+          return deleteEmployee();
+        case url.match(/\/employees\/\d+\/transfer$/) && method === 'POST':
+          return transferEmployee();
+          
+        // Department routes
+        case url.endsWith('/departments') && method === 'GET':
+          return getDepartments();
+        case url.endsWith('/departments') && method === 'POST':
+          return createDepartment();
+        case url.match(/\/departments\/\d+$/) && method === 'PUT':
+          return updateDepartment();
+        case url.match(/\/departments\/\d+$/) && method === 'DELETE':
+          return deleteDepartment();
+          
+        // Workflow routes
+        case url.match(/\/workflows\/employee\/\d+$/) && method === 'GET':
+          return getEmployeeWorkflows();
+        case url.endsWith('/workflows') && method === 'POST':
+          return createWorkflow();
+          
+        // Request routes
+        case url.endsWith('/requests') && method === 'GET':
+          return getRequests();
+        case url.endsWith('/requests') && method === 'POST':
+          return createRequest();
+        case url.match(/\/requests\/\d+$/) && method === 'PUT':
+          return updateRequest();
+        case url.match(/\/requests\/\d+$/) && method === 'DELETE':
+          return deleteRequest();
+          
         default:
           // pass through any requests not handled above
           return next.handle(request);
@@ -67,7 +132,6 @@ export class FakeBackendInterceptor implements HttpInterceptor {
     }
 
     //route functions
-
     function authenticate() {
       const { email, password } = body;
       const account = accounts.find(
@@ -338,6 +402,216 @@ export class FakeBackendInterceptor implements HttpInterceptor {
       accounts = accounts.filter((x) => x.id !== idFromUrl());
       localStorage.setItem(accountsKey, JSON.stringify(accounts));
       return ok();
+    }
+
+    // Employee functions
+    function getEmployees() {
+      if (!isAuthenticated()) return unauthorized();
+      return ok(employees);
+    }
+
+    function createEmployee() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const employee = { 
+        id: employees.length ? Math.max(...employees.map(x => x.id)) + 1 : 1,
+        ...body 
+      };
+      
+      employees.push(employee);
+      localStorage.setItem(employeesKey, JSON.stringify(employees));
+      
+      return ok(employee);
+    }
+
+    function getEmployeeById() {
+      if (!isAuthenticated()) return unauthorized();
+      
+      const id = idFromUrl();
+      const employee = employees.find(e => e.id === id);
+      
+      if (!employee) return error('Employee not found');
+      
+      return ok(employee);
+    }
+
+    function updateEmployee() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const id = idFromUrl();
+      const employeeIndex = employees.findIndex(e => e.id === id);
+      
+      if (employeeIndex === -1) return error('Employee not found');
+      
+      employees[employeeIndex] = { 
+        ...employees[employeeIndex],
+        ...body 
+      };
+      
+      localStorage.setItem(employeesKey, JSON.stringify(employees));
+      
+      return ok(employees[employeeIndex]);
+    }
+
+    function deleteEmployee() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const id = idFromUrl();
+      
+      if (!employees.find(e => e.id === id)) return error('Employee not found');
+      
+      employees = employees.filter(e => e.id !== id);
+      localStorage.setItem(employeesKey, JSON.stringify(employees));
+      
+      return ok({ message: 'Employee deleted' });
+    }
+
+    function transferEmployee() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const id = parseInt(url.split('/')[2]);
+      const employee = employees.find(e => e.id === id);
+      
+      if (!employee) return error('Employee not found');
+      
+      employee.departmentId = body.departmentId;
+      localStorage.setItem(employeesKey, JSON.stringify(employees));
+      
+      return ok(employee);
+    }
+
+    // Department functions
+    function getDepartments() {
+      if (!isAuthenticated()) return unauthorized();
+      return ok(departments);
+    }
+
+    function createDepartment() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const department = {
+        id: departments.length ? Math.max(...departments.map(d => d.id)) + 1 : 1,
+        ...body,
+        employeeCount: 0
+      };
+      
+      departments.push(department);
+      localStorage.setItem(departmentsKey, JSON.stringify(departments));
+      
+      return ok(department);
+    }
+
+    function updateDepartment() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const id = idFromUrl();
+      const deptIndex = departments.findIndex(d => d.id === id);
+      
+      if (deptIndex === -1) return error('Department not found');
+      
+      departments[deptIndex] = {
+        ...departments[deptIndex],
+        ...body,
+        employeeCount: departments[deptIndex].employeeCount
+      };
+      
+      localStorage.setItem(departmentsKey, JSON.stringify(departments));
+      
+      return ok(departments[deptIndex]);
+    }
+
+    function deleteDepartment() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const id = idFromUrl();
+      
+      if (!departments.find(d => d.id === id)) return error('Department not found');
+      
+      departments = departments.filter(d => d.id !== id);
+      localStorage.setItem(departmentsKey, JSON.stringify(departments));
+      
+      return ok({ message: 'Department deleted' });
+    }
+
+    // Workflow functions
+    function getEmployeeWorkflows() {
+      if (!isAuthenticated()) return unauthorized();
+      
+      const employeeId = parseInt(url.split('/').pop());
+      const employeeWorkflows = workflows.filter(w => w.employeeId === employeeId);
+      
+      return ok(employeeWorkflows);
+    }
+
+    function createWorkflow() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const workflow = {
+        id: workflows.length ? Math.max(...workflows.map(w => w.id)) + 1 : 1,
+        ...body
+      };
+      
+      workflows.push(workflow);
+      localStorage.setItem(workflowsKey, JSON.stringify(workflows));
+      
+      return ok(workflow);
+    }
+
+    // Request functions
+    function getRequests() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      return ok(requests);
+    }
+
+    function createRequest() {
+      if (!isAuthenticated()) return unauthorized();
+      
+      const account = currentAccount();
+      const employee = employees.find(e => e.userId === account.id);
+      
+      if (!employee) return error('Employee not found for current user');
+      
+      const request = {
+        id: requests.length ? Math.max(...requests.map(r => r.id)) + 1 : 1,
+        employeeId: employee.id,
+        ...body
+      };
+      
+      requests.push(request);
+      localStorage.setItem(requestsKey, JSON.stringify(requests));
+      
+      return ok(request);
+    }
+
+    function updateRequest() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const id = idFromUrl();
+      const reqIndex = requests.findIndex(r => r.id === id);
+      
+      if (reqIndex === -1) return error('Request not found');
+      
+      requests[reqIndex] = {
+        ...requests[reqIndex],
+        ...body
+      };
+      
+      localStorage.setItem(requestsKey, JSON.stringify(requests));
+      
+      return ok(requests[reqIndex]);
+    }
+
+    function deleteRequest() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const id = idFromUrl();
+      
+      if (!requests.find(r => r.id === id)) return error('Request not found');
+      
+      requests = requests.filter(r => r.id !== id);
+      localStorage.setItem(requestsKey, JSON.stringify(requests));
+      
+      return ok({ message: 'Request deleted' });
     }
 
     //helper functions
