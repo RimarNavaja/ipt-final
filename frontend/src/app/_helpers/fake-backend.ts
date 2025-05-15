@@ -357,6 +357,10 @@ export class FakeBackendInterceptor implements HttpInterceptor {
       account.dateCreated = new Date().toISOString();
       account.isVerified = false;
       account.refreshTokens = [];
+      
+      // Set isActive to true by default if not specified
+      account.isActive = account.isActive !== undefined ? account.isActive : true;
+      
       accounts.push(account);
       localStorage.setItem(accountsKey, JSON.stringify(accounts));
 
@@ -646,6 +650,7 @@ export class FakeBackendInterceptor implements HttpInterceptor {
         role,
         dateCreated,
         isVerified,
+        isActive,
       } = account;
       return {
         id,
@@ -656,6 +661,7 @@ export class FakeBackendInterceptor implements HttpInterceptor {
         role,
         dateCreated,
         isVerified,
+        isActive,
       };
     }
 
