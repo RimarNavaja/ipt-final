@@ -12,7 +12,7 @@
     
     <div class="mb-4">
       <label class="form-label">Account</label>
-      <select class="form-select" style="max-width: 400px;" [(ngModel)]="employee.userId" (change)="onAccountChange($event)">
+      <select class="form-select w-100" [(ngModel)]="employee.userId" (change)="onAccountChange($event)">
         <option value="" disabled>-- Select Account --</option>
         <option *ngFor="let user of users" [ngValue]="user.id">{{user.firstName}} {{user.lastName}} ({{user.email}})</option>
       </select>
@@ -25,20 +25,20 @@
     
     <div class="mb-4">
       <label class="form-label">Department</label>
-      <select class="form-select" style="max-width: 280px;" [(ngModel)]="employee.departmentId" (change)="onDepartmentChange($event)">
+      <select class="form-select w-100"  [(ngModel)]="employee.departmentId" (change)="onDepartmentChange($event)">
         <option value="" disabled>-- Select Department --</option>
         <option *ngFor="let dept of departments" [ngValue]="dept.id">{{dept.name}}</option>
       </select>
     </div>
     
     <div class="mb-4">
-      <label class="form-label">Hire Date</label>
-      <input type="date" class="form-control" style="max-width: 280px;" [(ngModel)]="employee.hireDate">
+      <label class="form-label ">Hire Date</label>
+      <input type="date" class="form-control w-100" [(ngModel)]="employee.hireDate">
     </div>
     
     <div class="mb-4">
       <label class="form-label">Status</label>
-      <select class="form-select" style="max-width: 120px;" [(ngModel)]="employee.status">
+      <select class="form-select w-100" [(ngModel)]="employee.status">
         <option value="Active">Active</option>
         <option value="Inactive">Inactive</option>
       </select>

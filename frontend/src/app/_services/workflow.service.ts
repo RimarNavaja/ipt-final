@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '@environments/environment';
 
-const baseUrl = `${environment.apiUrl}/workflows`;
+const baseUrl = environment.apiUrl ? `${environment.apiUrl}/workflows` : '/workflows';
 
 @Injectable({ providedIn: 'root' })
 export class WorkflowService {
@@ -15,5 +15,13 @@ export class WorkflowService {
 
   create(workflow: any): Observable<any> {
     return this.http.post<any>(baseUrl, workflow);
+  }
+  
+  update(id: number, workflow: any): Observable<any> {
+    return this.http.put<any>(`${baseUrl}/${id}`, workflow);
+  }
+  
+  updateStatus(id: number, status: string): Observable<any> {
+    return this.http.put<any>(`${baseUrl}/${id}/status`, { status });
   }
 } 

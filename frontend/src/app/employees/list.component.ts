@@ -56,13 +56,14 @@ export class ListComponent implements OnInit {
       
       // Merge employee data with account and department data
       this.employees = result.employees.map(employee => {
+        // Find matching account and department
         const account = result.accounts.find(a => a.id === employee.userId);
-        const department = result.departments.find(d => d.id === employee.departmentId);
+        const department = result.departments.find(d => d.id === parseInt(employee.departmentId));
         
         return {
           ...employee,
-          user: account,
-          department: department
+          user: account || null,
+          department: department || null
         };
       });
       

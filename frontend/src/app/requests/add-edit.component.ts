@@ -1,12 +1,16 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Output, EventEmitter } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AccountService, RequestService } from '@app/_services';
 import { first } from 'rxjs/operators';
 
 @Component({
+  selector: 'app-add-edit-request',
   templateUrl: './add.edit.component.html'
 })
 export class AddEditComponent implements OnInit {
+  @Output() requestSaved = new EventEmitter<void>();
+  @Output() cancelled = new EventEmitter<void>();
+
   id: string;
   request: any = {
     type: 'Equipment',
@@ -55,7 +59,7 @@ export class AddEditComponent implements OnInit {
         .pipe(first())
         .subscribe({
           next: () => {
-            this.router.navigate(['requests']);
+            this.requestSaved.emit();
           },
           error: error => {
             this.errorMessage = error.error?.message || 'An error occurred';
@@ -67,7 +71,7 @@ export class AddEditComponent implements OnInit {
         .pipe(first())
         .subscribe({
           next: () => {
-            this.router.navigate(['requests']);
+            this.requestSaved.emit();
           },
           error: error => {
             this.errorMessage = error.error?.message || 'An error occurred';
@@ -77,6 +81,6 @@ export class AddEditComponent implements OnInit {
   }
 
   cancel() {
-    this.router.navigate(['requests']);
+    this.cancelled.emit();
   }
 } 

@@ -27,7 +27,7 @@
               {{employee.status}}
             </span>
           </td>
-          <td class="d-flex gap-1">
+          <td class="d-flex gap-2">
             <a class="btn btn-info text-white" (click)="viewRequests(employee.id)">Requests</a>
             <a class="btn btn-info text-white" (click)="viewWorkflows(employee.id)">Workflows</a>
             <a *ngIf="account()?.role === 'Admin'" class="btn btn-warning text-white" (click)="transfer(employee)">Transfer</a>

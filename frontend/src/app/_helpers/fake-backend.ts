@@ -117,6 +117,10 @@ export class FakeBackendInterceptor implements HttpInterceptor {
           return getEmployeeWorkflows();
         case url.endsWith('/workflows') && method === 'POST':
           return createWorkflow();
+        case url.match(/\/workflows\/\d+$/) && method === 'PUT':
+          return updateWorkflow();
+        case url.match(/\/workflows\/\d+\/status$/) && method === 'PUT':
+          return updateWorkflowStatus();
           
         // Request routes
         case url.endsWith('/requests') && method === 'GET':
@@ -481,9 +485,8 @@ export class FakeBackendInterceptor implements HttpInterceptor {
       
       if (!employee) return error('Employee not found');
       
-      employee.departmentId = body.departmentId;
-      localStorage.setItem(employeesKey, JSON.stringify(employees));
-      
+      // Instead of changing department immediately, we return the current employee
+      // The actual transfer will happen when the workflow is approved
       return ok(employee);
     }
 
@@ -564,10 +567,126 @@ export class FakeBackendInterceptor implements HttpInterceptor {
       return ok(workflow);
     }
 
+    function updateWorkflow() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const id = idFromUrl();
+      const workflowIndex = workflows.findIndex(w => w.id === id);
+      
+      if (workflowIndex === -1) return error('Workflow not found');
+      
+      // Create the updated workflow object based on existing and new data
+      const updatedWorkflow = {
+        ...workflows[workflowIndex],
+        ...body // body contains the new status and other workflow properties
+      };
+      
+      // Check if the status is being updated to Approved or Rejected
+      if (updatedWorkflow.status === 'Approved' || updatedWorkflow.status === 'Rejected') {
+        // Handle department transfer logic if it's an approved department transfer
+        if (updatedWorkflow.type === 'Department Transfer' && updatedWorkflow.status === 'Approved') {
+          const employeeId = updatedWorkflow.employeeId;
+          const employee = employees.find(e => e.id === employeeId);
+          
+          if (employee && updatedWorkflow.details && updatedWorkflow.details.newDepartment) {
+            const newDepartmentName = updatedWorkflow.details.newDepartment;
+            const newDepartment = departments.find(d => d.name === newDepartmentName);
+            
+            if (newDepartment) {
+              // Update previous department employee count
+              const oldDepartment = departments.find(d => d.id === employee.departmentId);
+              if (oldDepartment && oldDepartment.employeeCount > 0) {
+                oldDepartment.employeeCount--;
+              }
+
+              // Update employee's department
+              employee.departmentId = newDepartment.id;
+              
+              // Update new department employee count
+              newDepartment.employeeCount = (newDepartment.employeeCount || 0) + 1;
+              
+              localStorage.setItem(employeesKey, JSON.stringify(employees));
+              localStorage.setItem(departmentsKey, JSON.stringify(departments));
+            }
+          }
+        }
+        
+        // Remove the workflow from the list
+        workflows = workflows.filter(w => w.id !== id);
+      } else {
+        // Otherwise, just update the workflow in place
+        workflows[workflowIndex] = updatedWorkflow;
+      }
+      
+      localStorage.setItem(workflowsKey, JSON.stringify(workflows));
+      
+      // Return the workflow object that was processed (it might have been removed from the list)
+      return ok(updatedWorkflow); 
+    }
+    
+    function updateWorkflowStatus() {
+      if (!isAuthorized(Role.Admin)) return unauthorized();
+      
+      const id = idFromUrl();
+      const workflowIndex = workflows.findIndex(w => w.id === id);
+      
+      if (workflowIndex === -1) return error('Workflow not found');
+      
+      const workflow = workflows[workflowIndex];
+      const newStatus = body.status;
+      
+      // Handle department transfer when approved
+      if (workflow.type === 'Department Transfer' && newStatus === 'Approved') {
+        const employeeId = workflow.employeeId;
+        const employee = employees.find(e => e.id === employeeId);
+        
+        if (employee) {
+          // Update the employee's department
+          const newDepartmentName = workflow.details.newDepartment;
+          const newDepartment = departments.find(d => d.name === newDepartmentName);
+          
+          if (newDepartment) {
+            employee.departmentId = newDepartment.id;
+            localStorage.setItem(employeesKey, JSON.stringify(employees));
+          }
+        }
+      }
+      
+      // Update workflow status
+      workflow.status = newStatus;
+      
+      // If workflow is approved or rejected, remove it from the list
+      if (newStatus === 'Approved' || newStatus === 'Rejected') {
+        workflows = workflows.filter(w => w.id !== id);
+      } else {
+        workflows[workflowIndex] = workflow;
+      }
+      
+      localStorage.setItem(workflowsKey, JSON.stringify(workflows));
+      
+      return ok(workflow);
+    }
+
     // Request functions
     function getRequests() {
-      if (!isAuthorized(Role.Admin)) return unauthorized();
-      return ok(requests);
+      if (!isAuthenticated()) return unauthorized(); // All authenticated users can attempt to get requests
+
+      const acc = currentAccount();
+      if (!acc) return unauthorized(); // Should be caught by isAuthenticated, but good practice
+
+      if (acc.role === Role.Admin) {
+        // Admin sees all requests
+        return ok(requests);
+      } else {
+        // Regular user sees only their own requests
+        const currentUserEmployee = employees.find(e => e.userId === acc.id);
+        if (!currentUserEmployee) {
+          // If the user is not linked to an employee record, they have no requests
+          return ok([]); 
+        }
+        const userRequests = requests.filter(r => r.employeeId === currentUserEmployee.id);
+        return ok(userRequests);
+      }
     }
 
     function createRequest() {

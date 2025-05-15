@@ -1,26 +1,41 @@
-import { Component, OnInit } from '@angular/core';
-import { Router, ActivatedRoute } from '@angular/router';
-import { AccountService, RequestService } from '@app/_services';
-import { first } from 'rxjs/operators';
+import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Router } from '@angular/router';
+import { AccountService, RequestService, EmployeeService } from '@app/_services';
+import { first, catchError } from 'rxjs/operators';
+import { forkJoin, of } from 'rxjs';
 
 @Component({
   templateUrl: './list.component.html'
 })
 export class ListComponent implements OnInit {
+  @ViewChild('addRequestModal') addRequestModal: ElementRef;
   requests = [];
-  employeeId?: number;
+  employees = [];
+  loading = true;
+  // isAddModalVisible = false; // We'll use Bootstrap's JS for modal toggling
+  
+  // Store a reference to the Bootstrap modal instance
+  private bsAddRequestModal: any;
 
   constructor(
     private requestService: RequestService,
     private accountService: AccountService,
-    private router: Router,
-    private route: ActivatedRoute
+    private employeeService: EmployeeService,
+    private router: Router
   ) {}
 
   ngOnInit() {
-    // Check if viewing requests for a specific employee
-    this.employeeId = +this.route.snapshot.params['id'];
     this.loadRequests();
+  }
+
+  ngAfterViewInit() {
+    // Initialize Bootstrap modal instance after view is initialized
+    // Ensure Bootstrap's JavaScript is loaded for this to work
+    if (typeof (window as any).bootstrap !== 'undefined' && typeof (window as any).bootstrap.Modal !== 'undefined') {
+      this.bsAddRequestModal = new (window as any).bootstrap.Modal(this.addRequestModal.nativeElement);
+    } else {
+      console.error('Bootstrap Modal JS not found. Make sure Bootstrap JS is included.');
+    }
   }
 
   account() {
@@ -28,20 +43,57 @@ export class ListComponent implements OnInit {
   }
 
   loadRequests() {
-    this.requestService.getAll()
-      .pipe(first())
-      .subscribe(requests => {
-        // If employeeId is provided, filter requests for that employee
-        if (this.employeeId) {
-          this.requests = requests.filter(req => req.employeeId === this.employeeId);
-        } else {
-          this.requests = requests;
-        }
+    this.loading = true;
+    
+    // Load employees and requests in parallel
+    forkJoin({
+      employees: this.employeeService.getAll().pipe(catchError(error => {
+        console.error('Error loading employees:', error);
+        return of([]);
+      })),
+      requests: this.requestService.getAll().pipe(catchError(error => {
+        console.error('Error loading requests:', error);
+        return of([]);
+      }))
+    })
+    .pipe(first())
+    .subscribe(result => {
+      this.employees = result.employees;
+      
+      // Merge request data with employee data
+      this.requests = result.requests.map(request => {
+        const employee = result.employees.find(e => e.id === request.employeeId);
+        
+        return {
+          ...request,
+          employee: employee || null
+        };
       });
+      
+      this.loading = false;
+    }, error => {
+      console.error('Error in forkJoin:', error);
+      this.loading = false;
+    });
   }
 
-  add() {
-    this.router.navigate(['requests/add']);
+  openAddModal() {
+    // Reset the add/edit component (if needed, e.g. clearing previous form data)
+    // This might require a method in AddEditComponent to reset its state, called via @ViewChild if app-add-edit-request is a direct child
+    if (this.bsAddRequestModal) {
+      this.bsAddRequestModal.show();
+    }
+  }
+
+  closeAddModal() {
+    if (this.bsAddRequestModal) {
+      this.bsAddRequestModal.hide();
+    }
+  }
+
+  handleRequestSaved() {
+    this.closeAddModal();
+    this.loadRequests(); // Refresh the list
   }
 
   edit(id: number) {

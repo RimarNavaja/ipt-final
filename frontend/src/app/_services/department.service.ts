@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '@environments/environment';
 
-const baseUrl = `${environment.apiUrl}/departments`;
+const baseUrl = environment.apiUrl ? `${environment.apiUrl}/departments` : '/departments';
 
 @Injectable({ providedIn: 'root' })
 export class DepartmentService {
