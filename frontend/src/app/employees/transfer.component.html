@@ -7,7 +7,7 @@
         <div class="modal-body">
           <div class="mb-3">
             <label class="form-label">Department</label>
-            <select class="form-select" [(ngModel)]="departmentId">
+            <select class="form-select" [(ngModel)]="selectedDepartmentId">
               <option *ngFor="let dept of departments" [value]="dept.id">{{dept.name}}</option>
             </select>
           </div>

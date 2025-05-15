@@ -15,7 +15,7 @@
     <div class="mb-3">
       <label class="form-label">Items</label>
       <div
-        *ngFor="let item of request.items; let i = index"
+        *ngFor="let item of request.requestItems; let i = index"
         class="border p-2 mb-2"
       >
         <div class="row">
@@ -32,7 +32,7 @@
             />
           </div>
           <div class="col-md-2 d-flex align-items-end">
-            <button class="btn btn-danger" (click)="removeltem(i)">
+            <button class="btn btn-danger" (click)="removeItem(i)">
               Remove
             </button>
           </div>
