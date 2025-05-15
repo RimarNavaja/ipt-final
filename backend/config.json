@@ -2,9 +2,9 @@
     "database": {
       "host": "localhost",
       "port": 3306,
-      "user": "root",
-      "password": "root",
-      "database": "user-management-system"
+      "user": "YOUR_DB_USER",
+      "password": "YOUR_DB_PASSWORD",
+      "database": "fullstack_db"
     },
     "secret": "THIS_IS_A_SECRET_KEY_CHANGE_IT_IN_PRODUCTION",
     "emailFrom": "info@user-management-system.com",
@@ -12,8 +12,8 @@
       "host": "smtp.ethereal.email",
       "port": 587,
       "auth": {
-        "user": "jeanne.glover@ethereal.email",
-        "pass": "gXEcbbDNY8kDeXxUEN"
+        "user": "YOUR_ETHEREAL_USER",
+        "pass": "YOUR_ETHEREAL_PASSWORD"
       }
     }
   }
