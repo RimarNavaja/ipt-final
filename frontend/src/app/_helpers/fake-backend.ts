@@ -77,7 +77,7 @@ export class FakeBackendInterceptor implements HttpInterceptor {
       if (!account) return error("Email or password is incorrect");
 
       //add refresh token to account
-      account.refreshToken.push(generateRefreshToken());
+      account.refreshTokens.push(generateRefreshToken());
       localStorage.setItem(accountsKey, JSON.stringify(accounts));
 
       return ok({
@@ -91,16 +91,16 @@ export class FakeBackendInterceptor implements HttpInterceptor {
 
       if (!refreshToken) return unauthorized();
       const account = accounts.find((x) =>
-        x.refreshToken.includes(refreshToken)
+        x.refreshTokens.includes(refreshToken)
       );
 
       if (!account) return unauthorized();
 
       //replace old refresh token with a new one and save
-      account.refreshToken = account.refreshToken.filter(
+      account.refreshTokens = account.refreshTokens.filter(
         (x) => x !== refreshToken
       );
-      account.refreshToken.push(generateRefreshToken());
+      account.refreshTokens.push(generateRefreshToken());
       localStorage.setItem(accountsKey, JSON.stringify(accounts));
 
       return ok({
@@ -114,7 +114,7 @@ export class FakeBackendInterceptor implements HttpInterceptor {
 
       const refreshToken = getRefreshToken();
       const account = accounts.find((x) =>
-        x.refreshToken.includes(refreshToken)
+        x.refreshTokens.includes(refreshToken)
       );
 
       //revoke token and save
@@ -156,7 +156,7 @@ export class FakeBackendInterceptor implements HttpInterceptor {
       account.dateCreated = new Date().toISOString();
       account.verificationToken = new Date().getTime().toString();
       account.isVerified = false;
-      account.refreshToken = [];
+      account.refreshTokens = [];
       delete account.confirmPassword;
       accounts.push(account);
 
