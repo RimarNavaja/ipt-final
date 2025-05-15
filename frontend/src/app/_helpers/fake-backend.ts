@@ -16,7 +16,10 @@ import { Role } from "@app/_models";
 
 // array in local storage for accounts
 const accountsKey = "angular-18-signup-verification-boilerplate-accounts";
-let accounts = JSON.parse(localStorage.getItem(accountsKey)) || [];
+let accounts = JSON.parse(localStorage.getItem(accountsKey)) || [
+  { id: 1, title: 'Mr', firstName: 'Admin', lastName: 'User', email: 'admin@example.com', password: 'admin', role: 'Admin', isVerified: true, refreshTokens: [], employeeId: 1, isActive: true },
+  { id: 2, title: 'Mr', firstName: 'Normal', lastName: 'User', email: 'user@example.com', password: 'user', role: 'User', isVerified: true, refreshTokens: [], employeeId: 2, isActive: true }
+];
 
 // arrays for employees, departments, workflows, and requests
 const employeesKey = "employees";

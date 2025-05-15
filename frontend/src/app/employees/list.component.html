@@ -1,42 +1,53 @@
 <div class="card">
-    <div class="card-header">Employees</div>
-    <div class="card-body">
-      <div class="table-responsive">
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th>Employee ID</th>
-              <th>User</th>
-              <th>Position</th>
-              <th>Department</th>
-              <th>Hire Date</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let employee of employees">
-              <td>{{employee.employeeId}}</td>
-              <td>{{employee.user?.email}}</td>
-              <td>{{employee.position}}</td>
-              <td>{{employee.department?.name}}</td>
-              <td>{{employee.hireDate | date:'shortDate'}}</td>
-              <td>
-                <span class="badge" [ngClass]="{'bg-success': employee.status === 'Active', 'bg-danger': employee.status !== 'Active'}">
-                  {{employee.status}}
-                </span>
-              </td>
-              <td>
-                <button class="btn btn-sm btn-info me-1" (click)="viewRequests(employee.id)">Requests</button>
-                <button class="btn btn-sm btn-info me-1" (click)="viewWorkflows(employee.id)">Workflows</button>
-                <button *ngIf="account()?.role === 'Admin'" class="btn btn-sm btn-warning me-1" (click)="transfer(employee)">Transfer</button>
-                <button *ngIf="account()?.role === 'Admin'" class="btn btn-sm btn-primary me-1" (click)="edit(employee.id)">Edit</button>
-                <button *ngIf="account()?.role === 'Admin'" class="btn btn-sm btn-danger" (click)="delete(employee.id)">Delete</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <button *ngIf="account()?.role === 'Admin'" class="btn btn-primary float-end" (click)="add()">Add Employee</button>
+  <div class="card-header">
+    <h2 class="mb-0">EMPLOYEES</h2>
+  </div>
+  <div class="card-body">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Employee ID</th>
+          <th>Account</th>
+          <th>Position</th>
+          <th>Department</th>
+          <th>Hire Date</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let employee of employees">
+          <td>{{employee.employeeId}}</td>
+          <td>{{employee.user?.firstName}} {{employee.user?.lastName}}</td>
+          <td>{{employee.position}}</td>
+          <td>{{employee.department?.name}}</td>
+          <td>{{employee.hireDate | date:'M/d/yyyy'}}</td>
+          <td>
+            <span class="badge text-white p-2 rounded-pill" [ngClass]="{'bg-success': employee.status === 'Active', 'bg-danger': employee.status !== 'Active'}">
+              {{employee.status}}
+            </span>
+          </td>
+          <td class="d-flex gap-1">
+            <a class="btn btn-info text-white" (click)="viewRequests(employee.id)">Requests</a>
+            <a class="btn btn-info text-white" (click)="viewWorkflows(employee.id)">Workflows</a>
+            <a *ngIf="account()?.role === 'Admin'" class="btn btn-warning text-white" (click)="transfer(employee)">Transfer</a>
+            <a *ngIf="account()?.role === 'Admin'" class="btn btn-primary" (click)="edit(employee.id)">Edit</a>
+          </td>
+        </tr>
+        <tr *ngIf="loading">
+          <td colspan="7" class="text-center p-5">
+            <span class="spinner-border spinner-border-lg align-center"></span>
+          </td>
+        </tr>
+        <tr *ngIf="!loading && (!employees || employees.length === 0)">
+          <td colspan="7" class="text-center p-3">
+            <p class="mb-0">No employees found</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="d-flex justify-content-end mt-3">
+      <a *ngIf="account()?.role === 'Admin'" class="btn btn-primary" (click)="add()">Add Employee</a>
     </div>
   </div>
+</div>

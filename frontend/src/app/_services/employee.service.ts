@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '@environments/environment';
 
-const baseUrl = `${environment.apiUrl}/employees`;
+const baseUrl = environment.apiUrl ? `${environment.apiUrl}/employees` : `/employees`;
 
 @Injectable({ providedIn: 'root' })
 export class EmployeeService {
