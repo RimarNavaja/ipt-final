@@ -18,10 +18,17 @@ async function initialize() {
     // init models and add them to the exported db object
     db.Account = require('../accounts/account.model')(sequelize);
     db.RefreshToken = require('../accounts/refresh-token.model')(sequelize);
+    db.Workflow = require('../workflows/workflow.model')(sequelize);
+    db.Request = require('../requests/request.model')(sequelize);
+    db.RequestItem = require('../requests/request-item.model')(sequelize);
     
     // define relationships
     db.Account.hasMany(db.RefreshToken, { onDelete: 'CASCADE' });
     db.RefreshToken.belongsTo(db.Account);
+    
+    // Request relationships
+    db.Request.hasMany(db.RequestItem, { onDelete: 'CASCADE' });
+    db.RequestItem.belongsTo(db.Request);
     
     // sync all models with database
     await sequelize.sync({ alter: true });
