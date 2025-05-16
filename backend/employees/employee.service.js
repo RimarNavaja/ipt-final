@@ -73,6 +73,15 @@ async function create(params) {
     throw "Department not found";
   }
 
+  // Validate user account is active
+  const account = await db.Account.findByPk(params.userId);
+  if (!account) {
+    throw "Account not found";
+  }
+  if (!account.isActive) {
+    throw "Cannot assign inactive account to employee";
+  }
+
   // Create employee
   const employee = new db.Employee(params);
   employee.status = employee.status || "Active";
@@ -105,6 +114,17 @@ async function update(id, params) {
     (await db.Employee.findOne({ where: { userId: params.userId } }))
   ) {
     throw "Account is already associated with an employee";
+  }
+
+  // Validate user account is active if changing
+  if (params.userId && params.userId !== employee.userId) {
+    const account = await db.Account.findByPk(params.userId);
+    if (!account) {
+      throw "Account not found";
+    }
+    if (!account.isActive) {
+      throw "Cannot assign inactive account to employee";
+    }
   }
 
   // Validate department exists if changing

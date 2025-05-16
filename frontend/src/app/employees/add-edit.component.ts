@@ -41,13 +41,14 @@ export class AddEditComponent implements OnInit {
     // Load all required data in parallel
     forkJoin({
       departments: this.departmentService.getAll().pipe(first()),
-      users: this.accountService.getAll().pipe(first()),
+      users: this.accountService.getActive().pipe(first()),
       employees: this.employeeService.getAll().pipe(first()),
       employee: this.id
         ? this.employeeService.getById(+this.id).pipe(first())
         : of(null),
     }).subscribe((results) => {
       this.departments = results.departments;
+      // Use the active accounts directly
       this.users = results.users;
       this.employees = results.employees;
 
