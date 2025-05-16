@@ -110,8 +110,18 @@ const defaultEmployees = [
 ];
 
 // Load or initialize employees
-let employees =
-  JSON.parse(localStorage.getItem(employeesKey)) || defaultEmployees;
+let employees = JSON.parse(localStorage.getItem(employeesKey)) || [];
+
+// Ensure default employees always exist by checking for their employee IDs
+if (!employees.some((e) => e.employeeId === "EMP001")) {
+  employees.push(defaultEmployees[0]);
+}
+if (!employees.some((e) => e.employeeId === "EMP002")) {
+  employees.push(defaultEmployees[1]);
+}
+
+// Save updated employees to localStorage
+localStorage.setItem(employeesKey, JSON.stringify(employees));
 
 // Calculate department counts based on employee distribution
 function updateDepartmentCounts() {
@@ -237,11 +247,21 @@ export class FakeBackendInterceptor implements HttpInterceptor {
         case url.match(/\/employees\/\d+$/) && method === "DELETE":
           return deleteEmployee();
         case url.match(/\/employees\/\d+\/transfer$/) && method === "POST":
+          console.log("Matched specific employee transfer route!");
+          return transferEmployee();
+        case url.includes("/transfer") && method === "POST":
+          console.log("Matched generic transfer route!");
+          console.log("URL:", url);
+          console.log("Method:", method);
+          console.log("Body:", body);
           return transferEmployee();
 
         // Department routes
         case url.endsWith("/departments") && method === "GET":
           return getDepartments();
+        case url.endsWith("/departments/names") && method === "GET":
+          console.log("Getting department names for dropdown");
+          return ok(departments.map((d) => ({ id: d.id, name: d.name })));
         case url.match(/\/departments\/\d+$/) && method === "GET":
           return getDepartmentById();
         case url.endsWith("/departments") && method === "POST":
@@ -649,14 +669,107 @@ export class FakeBackendInterceptor implements HttpInterceptor {
     function transferEmployee() {
       if (!isAuthorized(Role.Admin)) return unauthorized();
 
-      const id = parseInt(url.split("/")[2]);
+      // Get the employee ID from the URL correctly
+      // The URL format is like /employees/123/transfer, so we need to extract '123'
+      const urlParts = url.split("/");
+      console.log("Transfer URL parts:", urlParts);
+
+      // Find the 'employees' part and take the next segment as ID
+      let employeeIdIndex = -1;
+      for (let i = 0; i < urlParts.length; i++) {
+        if (urlParts[i] === "employees") {
+          employeeIdIndex = i + 1;
+          break;
+        }
+      }
+
+      if (employeeIdIndex === -1 || employeeIdIndex >= urlParts.length) {
+        console.error("Invalid URL format for employee transfer");
+        return error("Invalid URL format");
+      }
+
+      const id = parseInt(urlParts[employeeIdIndex]);
+      console.log("Attempting to transfer employee with ID:", id);
+
+      // Log all employees for debugging
+      console.log(
+        "Available employees:",
+        employees.map((e) => ({ id: e.id, employeeId: e.employeeId }))
+      );
+
       const employee = employees.find((e) => e.id === id);
+      console.log("Found employee:", employee);
 
       if (!employee) return error("Employee not found");
 
-      // Instead of changing department immediately, we return the current employee
-      // The actual transfer will happen when the workflow is approved
-      return ok(employee);
+      // Log the entire body to debug
+      console.log("Request body for transfer:", body);
+
+      // Extract department ID directly from the request
+      let targetDepartmentId = null;
+
+      if (body.departmentId) {
+        targetDepartmentId = Number(body.departmentId);
+      } else if (body.department && body.department.id) {
+        targetDepartmentId = Number(body.department.id);
+      } else if (body.department) {
+        targetDepartmentId = Number(body.department);
+      } else if (body.targetDepartment) {
+        targetDepartmentId = Number(body.targetDepartment);
+      } else if (body.id) {
+        targetDepartmentId = Number(body.id);
+      }
+
+      console.log("Extracted target department ID:", targetDepartmentId);
+
+      if (!targetDepartmentId) {
+        return error("Target department not specified");
+      }
+
+      // Find the target department
+      const targetDepartment = departments.find(
+        (d) => d.id === targetDepartmentId
+      );
+
+      console.log("Target department:", targetDepartment);
+      if (!targetDepartment) {
+        // Log all departments for debugging
+        console.log("Available departments:", departments);
+        return error(
+          `Target department with ID ${targetDepartmentId} not found`
+        );
+      }
+
+      // Create a workflow for the transfer
+      const account = currentAccount();
+      const workflow = {
+        id: workflows.length ? Math.max(...workflows.map((w) => w.id)) + 1 : 1,
+        employeeId: employee.id,
+        type: "Department Transfer",
+        details: {
+          employeeId: employee.id,
+          employeeName: employee.employeeId, // Using employeeId as name for display
+          currentDepartment:
+            departments.find((d) => d.id === employee.departmentId)?.name ||
+            "None",
+          newDepartment: targetDepartment.name,
+          newDepartmentId: targetDepartmentId, // Add the department ID
+          requestedBy: `${account.firstName} ${account.lastName}`,
+          requestedAt: new Date().toISOString(),
+        },
+        status: "Pending",
+      };
+
+      workflows.push(workflow);
+      localStorage.setItem(workflowsKey, JSON.stringify(workflows));
+
+      console.log("Created department transfer workflow:", workflow);
+
+      return ok({
+        employee,
+        workflow,
+        message: "Transfer request has been created and is pending approval.",
+      });
     }
 
     // Department functions
@@ -798,37 +911,48 @@ export class FakeBackendInterceptor implements HttpInterceptor {
           const employeeId = updatedWorkflow.employeeId;
           const employee = employees.find((e) => e.id === employeeId);
 
-          if (
-            employee &&
-            updatedWorkflow.details &&
-            updatedWorkflow.details.newDepartment
-          ) {
-            const newDepartmentName = updatedWorkflow.details.newDepartment;
-            const newDepartment = departments.find(
-              (d) => d.name === newDepartmentName
-            );
+          if (employee && updatedWorkflow.details) {
+            // Get new department ID from workflow details
+            const newDepartmentId = updatedWorkflow.details.newDepartmentId;
 
-            if (newDepartment) {
-              // Update employee's department
-              employee.departmentId = newDepartment.id;
+            if (newDepartmentId) {
+              // Use department ID directly if available
+              employee.departmentId = newDepartmentId;
               localStorage.setItem(employeesKey, JSON.stringify(employees));
 
               // Recalculate department counts after the transfer
               recalculateDepartmentCounts();
+              console.log(
+                `Employee ${employeeId} transferred to department ID ${newDepartmentId} via workflow update`
+              );
+            } else if (updatedWorkflow.details.newDepartment) {
+              // Fallback to department name lookup
+              const newDepartmentName = updatedWorkflow.details.newDepartment;
+              const newDepartment = departments.find(
+                (d) => d.name === newDepartmentName
+              );
+
+              if (newDepartment) {
+                // Update employee's department
+                employee.departmentId = newDepartment.id;
+                localStorage.setItem(employeesKey, JSON.stringify(employees));
+
+                // Recalculate department counts after the transfer
+                recalculateDepartmentCounts();
+                console.log(
+                  `Employee ${employeeId} transferred to department ${newDepartmentName} via workflow update`
+                );
+              }
             }
           }
         }
-
-        // Remove the workflow from the list
-        workflows = workflows.filter((w) => w.id !== id);
-      } else {
-        // Otherwise, just update the workflow in place
-        workflows[workflowIndex] = updatedWorkflow;
       }
 
+      // Always update the workflow in place, regardless of status
+      workflows[workflowIndex] = updatedWorkflow;
       localStorage.setItem(workflowsKey, JSON.stringify(workflows));
 
-      // Return the workflow object that was processed (it might have been removed from the list)
+      // Return the workflow object that was processed
       return ok(updatedWorkflow);
     }
 
@@ -865,19 +989,37 @@ export class FakeBackendInterceptor implements HttpInterceptor {
         const employeeId = workflow.employeeId;
         const employee = employees.find((e) => e.id === employeeId);
 
-        if (employee) {
-          // Update the employee's department
-          const newDepartmentName = workflow.details.newDepartment;
-          const newDepartment = departments.find(
-            (d) => d.name === newDepartmentName
-          );
+        if (employee && workflow.details) {
+          // Get new department ID from workflow details
+          const newDepartmentId = workflow.details.newDepartmentId;
 
-          if (newDepartment) {
-            employee.departmentId = newDepartment.id;
+          if (newDepartmentId) {
+            // Use department ID directly if available
+            employee.departmentId = newDepartmentId;
             localStorage.setItem(employeesKey, JSON.stringify(employees));
 
             // Recalculate department counts after the transfer
             recalculateDepartmentCounts();
+            console.log(
+              `Employee ${employeeId} transferred to department ID ${newDepartmentId}`
+            );
+          } else if (workflow.details.newDepartment) {
+            // Fallback to department name lookup
+            const newDepartmentName = workflow.details.newDepartment;
+            const newDepartment = departments.find(
+              (d) => d.name === newDepartmentName
+            );
+
+            if (newDepartment) {
+              employee.departmentId = newDepartment.id;
+              localStorage.setItem(employeesKey, JSON.stringify(employees));
+
+              // Recalculate department counts after the transfer
+              recalculateDepartmentCounts();
+              console.log(
+                `Employee ${employeeId} transferred to department ${newDepartmentName}`
+              );
+            }
           }
         }
       }
@@ -885,13 +1027,8 @@ export class FakeBackendInterceptor implements HttpInterceptor {
       // Update workflow status
       workflow.status = newStatus;
 
-      // If workflow is approved or rejected, remove it from the list
-      if (newStatus === "Approved" || newStatus === "Rejected") {
-        workflows = workflows.filter((w) => w.id !== id);
-      } else {
-        workflows[workflowIndex] = workflow;
-      }
-
+      // Always keep the workflow in the list and update it
+      workflows[workflowIndex] = workflow;
       localStorage.setItem(workflowsKey, JSON.stringify(workflows));
 
       return ok(workflow);
