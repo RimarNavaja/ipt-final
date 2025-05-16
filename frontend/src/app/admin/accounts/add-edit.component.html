@@ -94,11 +94,11 @@
         <label for="isActive" class="form-check-label">Active</label>
       </div>
 
-      <div *ngIf="!isAddMode" class="mb-4 visually-hidden">
+      <div *ngIf="!isAddMode" class="mb-4">
         <h5 class="pt-3">Change Password</h5>
         <p class="text-muted">Leave blank to keep the same password</p>
       </div>
-      <div class="row mb-4 visually-hidden">
+      <div class="row mb-4">
         <div class="col-md-6">
           <label class="form-label">Password</label>
           <input
@@ -108,6 +108,7 @@
             [ngClass]="{ 'is-invalid': submitted && f.password.errors }"
           />
           <div *ngIf="submitted && f.password.errors" class="invalid-feedback">
+            <div *ngIf="f.password.errors.required">Password is required</div>
             <div *ngIf="f.password.errors.minlength">
               Password must be at least 6 characters
             </div>

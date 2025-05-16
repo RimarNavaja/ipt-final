@@ -6,7 +6,7 @@ A full-stack application for managing user accounts with features like email sig
 ## Installation
 1. Clone the repository:
    ```
-   git clone https://github.com/your-username/user-management-system.git
+   git clone https://github.com/your-username/ipt-final.git
    ```
 
 2. Install Node.js and npm from https://nodejs.org/
@@ -15,7 +15,7 @@ A full-stack application for managing user accounts with features like email sig
 
 4. Navigate to the backend directory:
    ```
-   cd user-management-system/backend
+   cd ipt-final/backend
    ```
 
 5. Install dependencies:

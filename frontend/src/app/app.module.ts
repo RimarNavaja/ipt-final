@@ -14,25 +14,26 @@ import { AlertComponent } from "./_components";
 import { HomeComponent } from "./home";
 
 @NgModule({
-    imports: [
-        BrowserModule,
-        ReactiveFormsModule,
-        FormsModule,
-        HttpClientModule,
-        AppRoutingModule
-    ],
-    declarations: [
-        AppComponent,
-        AlertComponent,
-        HomeComponent
-    ],
-    providers: [
-        {provide: APP_INITIALIZER, useFactory: appInitializer, multi:true, deps: [AccountService]},
-        {provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true},
-        {provide: HTTP_INTERCEPTORS, useClass: ErrorInterceptor, multi: true},
-        // fake backend provider
-        fakeBackendProvider
-    ],
-    bootstrap: [AppComponent]
+  imports: [
+    BrowserModule,
+    ReactiveFormsModule,
+    FormsModule,
+    HttpClientModule,
+    AppRoutingModule,
+  ],
+  declarations: [AppComponent, AlertComponent, HomeComponent],
+  providers: [
+    {
+      provide: APP_INITIALIZER,
+      useFactory: appInitializer,
+      multi: true,
+      deps: [AccountService],
+    },
+    { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true },
+    { provide: HTTP_INTERCEPTORS, useClass: ErrorInterceptor, multi: true },
+    // fake backend provider
+    fakeBackendProvider,
+  ],
+  bootstrap: [AppComponent],
 })
-export class AppModule { }
+export class AppModule {}
