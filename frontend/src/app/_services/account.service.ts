@@ -91,6 +91,10 @@ export class AccountService {
     return this.http.get<Account>(`${baseUrl}/${id}`);
   }
 
+  getActive() {
+    return this.http.get<Account[]>(`${baseUrl}/active`);
+  }
+
   create(params) {
     return this.http.post(baseUrl, params);
   }

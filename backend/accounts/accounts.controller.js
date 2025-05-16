@@ -21,6 +21,7 @@ router.post(
 );
 router.post("/reset-password", resetPasswordSchema, resetPassword);
 router.get("/", authorize(Role.Admin), getAll);
+router.get("/active", authorize(), getActive);
 router.get("/:id", authorize(), getById);
 router.post("/", authorize(Role.Admin), createSchema, create);
 router.put("/:id", authorize(), updateSchema, update);
@@ -183,6 +184,13 @@ function getAll(req, res, next) {
     .catch(next);
 }
 
+function getActive(req, res, next) {
+  accountService
+    .getActive()
+    .then((accounts) => res.json(accounts))
+    .catch(next);
+}
+
 function getById(req, res, next) {
   // users can get their own account and admins can get any account
   if (Number(req.params.id) !== req.user.id && req.user.role !== Role.Admin) {
@@ -223,6 +231,7 @@ function updateSchema(req, res, next) {
     email: Joi.string().email().empty(""),
     password: Joi.string().min(6).empty(""),
     confirmPassword: Joi.string().valid(Joi.ref("password")).empty(""),
+    isActive: Joi.boolean().empty(""),
   };
 
   // only admins can update role

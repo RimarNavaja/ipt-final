@@ -17,6 +17,7 @@ module.exports = {
   validateResetToken,
   resetPassword,
   getAll,
+  getActive,
   getById,
   create,
   update,
@@ -152,6 +153,13 @@ async function resetPassword({ token, password }) {
 
 async function getAll() {
   const accounts = await db.Account.findAll();
+  return accounts.map((x) => basicDetails(x));
+}
+
+async function getActive() {
+  const accounts = await db.Account.findAll({
+    where: { isActive: true }
+  });
   return accounts.map((x) => basicDetails(x));
 }
 
