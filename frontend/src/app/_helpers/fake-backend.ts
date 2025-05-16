@@ -377,7 +377,7 @@ export class FakeBackendInterceptor implements HttpInterceptor {
     function updateAccount() {
       if (!isAuthenticated()) return unauthorized();
 
-      const params = body;
+      let params = body;
       let account = accounts.find((x) => x.id === idFromUrl());
 
       //user accounts can update own profile and admin accounts can update all profiles
