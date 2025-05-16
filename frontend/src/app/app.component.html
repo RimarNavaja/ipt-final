@@ -1,4 +1,7 @@
-<div class="app-container" [ngClass]="{ 'bg-light': account }">
+<div
+  class="app-container d-flex flex-column min-vh-100"
+  [ngClass]="{ 'bg-light': account }"
+>
   <!-- main nav -->
   <nav class="navbar navbar-expand navbar-dark bg-dark" *ngIf="account">
     <div class="navbar-nav">
@@ -71,7 +74,15 @@
   <alert></alert>
 
   <!-- main router outlet -->
-  <div class="container mt-4">
+  <div class="container mt-4 flex-grow-1">
     <router-outlet></router-outlet>
   </div>
+
+  <!-- footer -->
+  <footer class="bg-dark text-white py-3 mt-4">
+    <div class="container text-center">
+      <p class="mb-0">IPT Final Project - BSIT-3B © 2025</p>
+      <p class="mb-0">Group D</p>
+    </div>
+  </footer>
 </div>

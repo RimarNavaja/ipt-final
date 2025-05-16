@@ -64,13 +64,34 @@ const departmentsKey = "departments";
 const workflowsKey = "workflows";
 const requestsKey = "requests";
 
-let employees = JSON.parse(localStorage.getItem(employeesKey)) || [
+// Define default departments first
+const defaultDepartments = [
+  {
+    id: 1,
+    name: "Engineering",
+    description: "Software development team",
+    employeeCount: 0, // Will be calculated based on employees
+  },
+  {
+    id: 2,
+    name: "Marketing",
+    description: "Marketing team",
+    employeeCount: 0, // Will be calculated based on employees
+  },
+];
+
+// Load or initialize departments
+let departments =
+  JSON.parse(localStorage.getItem(departmentsKey)) || defaultDepartments;
+
+// Default employees with correct department references
+const defaultEmployees = [
   {
     id: 1,
     employeeId: "EMP001",
     userId: 1,
     position: "Developer",
-    departmentId: 1,
+    departmentId: 1, // Engineering
     hireDate: "2025-01-01",
     status: "Active",
   },
@@ -79,21 +100,39 @@ let employees = JSON.parse(localStorage.getItem(employeesKey)) || [
     employeeId: "EMP002",
     userId: 2,
     position: "Designer",
-    departmentId: 2,
+    departmentId: 1, // Engineering - changed from 2 to 1 to match images
     hireDate: "2025-02-01",
     status: "Active",
   },
 ];
 
-let departments = JSON.parse(localStorage.getItem(departmentsKey)) || [
-  {
-    id: 1,
-    name: "Engineering",
-    description: "Software development team",
-    employeeCount: 1,
-  },
-  { id: 2, name: "Marketing", description: "Marketing team", employeeCount: 1 },
-];
+// Load or initialize employees
+let employees =
+  JSON.parse(localStorage.getItem(employeesKey)) || defaultEmployees;
+
+// Calculate department counts based on employee distribution
+function updateDepartmentCounts() {
+  // Reset counts
+  departments.forEach((dept) => {
+    dept.employeeCount = 0;
+  });
+
+  // Count employees in each department
+  employees.forEach((emp) => {
+    if (emp.departmentId) {
+      const dept = departments.find((d) => d.id === emp.departmentId);
+      if (dept) {
+        dept.employeeCount++;
+      }
+    }
+  });
+
+  // Save updated departments
+  localStorage.setItem(departmentsKey, JSON.stringify(departments));
+}
+
+// Perform initial count update
+updateDepartmentCounts();
 
 let workflows = JSON.parse(localStorage.getItem(workflowsKey)) || [
   {
@@ -126,7 +165,31 @@ export class FakeBackendInterceptor implements HttpInterceptor {
     const { url, method, headers, body } = request;
     const alertService = this.alertService;
 
+    // Recalculate department employee counts based on employee data
+    recalculateDepartmentCounts();
+
     return handleRoute();
+
+    // Helper function to recalculate and update department counts
+    function recalculateDepartmentCounts() {
+      // Reset all department counts to zero
+      departments.forEach((dept) => {
+        dept.employeeCount = 0;
+      });
+
+      // Count employees in each department
+      employees.forEach((emp) => {
+        if (emp.departmentId) {
+          const dept = departments.find((d) => d.id === emp.departmentId);
+          if (dept) {
+            dept.employeeCount++;
+          }
+        }
+      });
+
+      // Save updated departments to localStorage
+      localStorage.setItem(departmentsKey, JSON.stringify(departments));
+    }
 
     function handleRoute() {
       console.log(`Handling route: ${url} (${method})`);
@@ -176,6 +239,8 @@ export class FakeBackendInterceptor implements HttpInterceptor {
         // Department routes
         case url.endsWith("/departments") && method === "GET":
           return getDepartments();
+        case url.match(/\/departments\/\d+$/) && method === "GET":
+          return getDepartmentById();
         case url.endsWith("/departments") && method === "POST":
           return createDepartment();
         case url.match(/\/departments\/\d+$/) && method === "PUT":
@@ -506,6 +571,9 @@ export class FakeBackendInterceptor implements HttpInterceptor {
       employees.push(employee);
       localStorage.setItem(employeesKey, JSON.stringify(employees));
 
+      // Recalculate department counts after adding an employee
+      recalculateDepartmentCounts();
+
       return ok(employee);
     }
 
@@ -528,12 +596,21 @@ export class FakeBackendInterceptor implements HttpInterceptor {
 
       if (employeeIndex === -1) return error("Employee not found");
 
+      // Store old department ID to check if it changed
+      const oldDepartmentId = employees[employeeIndex].departmentId;
+      const newDepartmentId = body.departmentId;
+
       employees[employeeIndex] = {
         ...employees[employeeIndex],
         ...body,
       };
 
       localStorage.setItem(employeesKey, JSON.stringify(employees));
+
+      // Recalculate department counts if department changed
+      if (oldDepartmentId !== newDepartmentId) {
+        recalculateDepartmentCounts();
+      }
 
       return ok(employees[employeeIndex]);
     }
@@ -548,6 +625,9 @@ export class FakeBackendInterceptor implements HttpInterceptor {
 
       employees = employees.filter((e) => e.id !== id);
       localStorage.setItem(employeesKey, JSON.stringify(employees));
+
+      // Recalculate department counts after removing an employee
+      recalculateDepartmentCounts();
 
       return ok({ message: "Employee deleted" });
     }
@@ -569,6 +649,17 @@ export class FakeBackendInterceptor implements HttpInterceptor {
     function getDepartments() {
       if (!isAuthenticated()) return unauthorized();
       return ok(departments);
+    }
+
+    function getDepartmentById() {
+      if (!isAuthenticated()) return unauthorized();
+
+      const id = idFromUrl();
+      const department = departments.find((d) => d.id === id);
+
+      if (!department) return error("Department not found");
+
+      return ok(department);
     }
 
     function createDepartment() {
@@ -666,6 +757,25 @@ export class FakeBackendInterceptor implements HttpInterceptor {
         updatedWorkflow.status === "Approved" ||
         updatedWorkflow.status === "Rejected"
       ) {
+        // Update the corresponding request status if this is a request approval workflow
+        if (
+          updatedWorkflow.type === "Request Approval" &&
+          updatedWorkflow.details &&
+          updatedWorkflow.details.requestId
+        ) {
+          const requestId = updatedWorkflow.details.requestId;
+          const requestIndex = requests.findIndex((r) => r.id === requestId);
+
+          if (requestIndex !== -1) {
+            // Update the request status to match the workflow status
+            requests[requestIndex].status = updatedWorkflow.status;
+            localStorage.setItem(requestsKey, JSON.stringify(requests));
+            console.log(
+              `Updated request ${requestId} status to ${updatedWorkflow.status}`
+            );
+          }
+        }
+
         // Handle department transfer logic if it's an approved department transfer
         if (
           updatedWorkflow.type === "Department Transfer" &&
@@ -685,23 +795,12 @@ export class FakeBackendInterceptor implements HttpInterceptor {
             );
 
             if (newDepartment) {
-              // Update previous department employee count
-              const oldDepartment = departments.find(
-                (d) => d.id === employee.departmentId
-              );
-              if (oldDepartment && oldDepartment.employeeCount > 0) {
-                oldDepartment.employeeCount--;
-              }
-
               // Update employee's department
               employee.departmentId = newDepartment.id;
-
-              // Update new department employee count
-              newDepartment.employeeCount =
-                (newDepartment.employeeCount || 0) + 1;
-
               localStorage.setItem(employeesKey, JSON.stringify(employees));
-              localStorage.setItem(departmentsKey, JSON.stringify(departments));
+
+              // Recalculate department counts after the transfer
+              recalculateDepartmentCounts();
             }
           }
         }
@@ -730,6 +829,23 @@ export class FakeBackendInterceptor implements HttpInterceptor {
       const workflow = workflows[workflowIndex];
       const newStatus = body.status;
 
+      // Update the corresponding request if this is a request approval workflow
+      if (
+        workflow.type === "Request Approval" &&
+        workflow.details &&
+        workflow.details.requestId
+      ) {
+        const requestId = workflow.details.requestId;
+        const requestIndex = requests.findIndex((r) => r.id === requestId);
+
+        if (requestIndex !== -1) {
+          // Update the request status to match the workflow status
+          requests[requestIndex].status = newStatus;
+          localStorage.setItem(requestsKey, JSON.stringify(requests));
+          console.log(`Updated request ${requestId} status to ${newStatus}`);
+        }
+      }
+
       // Handle department transfer when approved
       if (workflow.type === "Department Transfer" && newStatus === "Approved") {
         const employeeId = workflow.employeeId;
@@ -745,6 +861,9 @@ export class FakeBackendInterceptor implements HttpInterceptor {
           if (newDepartment) {
             employee.departmentId = newDepartment.id;
             localStorage.setItem(employeesKey, JSON.stringify(employees));
+
+            // Recalculate department counts after the transfer
+            recalculateDepartmentCounts();
           }
         }
       }
@@ -810,13 +929,45 @@ export class FakeBackendInterceptor implements HttpInterceptor {
         }
       }
 
+      // Create a deep copy of the request body to avoid reference issues
+      const requestData = JSON.parse(JSON.stringify(body));
+
       const request = {
         id: requests.length ? Math.max(...requests.map((r) => r.id)) + 1 : 1,
-        ...body,
+        ...requestData,
       };
+
+      console.log("Creating new request:", request);
 
       requests.push(request);
       localStorage.setItem(requestsKey, JSON.stringify(requests));
+
+      // Create a corresponding workflow for this request
+      if (request.employeeId) {
+        const employee = employees.find((e) => e.id === request.employeeId);
+
+        if (employee) {
+          const workflow = {
+            id: workflows.length
+              ? Math.max(...workflows.map((w) => w.id)) + 1
+              : 1,
+            employeeId: request.employeeId,
+            type: "Request Approval",
+            details: {
+              requestId: request.id,
+              requestType: request.type,
+              requestItems: JSON.parse(JSON.stringify(request.requestItems)),
+              createdBy: `${account.firstName} ${account.lastName}`,
+              createdAt: new Date().toISOString(),
+            },
+            status: "Pending",
+          };
+
+          workflows.push(workflow);
+          localStorage.setItem(workflowsKey, JSON.stringify(workflows));
+          console.log("Created workflow for request:", workflow);
+        }
+      }
 
       return ok(request);
     }
@@ -834,14 +985,82 @@ export class FakeBackendInterceptor implements HttpInterceptor {
         body.employeeId = Number(body.employeeId);
       }
 
-      requests[reqIndex] = {
-        ...requests[reqIndex],
-        ...body,
+      // Create a deep copy of the request body to avoid reference issues
+      const requestData = JSON.parse(JSON.stringify(body));
+
+      const oldRequest = requests[reqIndex];
+      const updatedRequest = {
+        ...oldRequest,
+        ...requestData,
       };
+
+      requests[reqIndex] = updatedRequest;
+      console.log("Updated request:", updatedRequest);
 
       localStorage.setItem(requestsKey, JSON.stringify(requests));
 
-      return ok(requests[reqIndex]);
+      // Update the corresponding workflow if it exists
+      // If status has changed, update workflow status accordingly
+      const account = currentAccount();
+      const relatedWorkflows = workflows.filter(
+        (w) =>
+          w.type === "Request Approval" &&
+          w.details &&
+          w.details.requestId === id
+      );
+
+      if (relatedWorkflows.length > 0) {
+        // Update existing workflow
+        relatedWorkflows.forEach((workflow) => {
+          workflow.details.requestType = updatedRequest.type;
+          workflow.details.requestItems = JSON.parse(
+            JSON.stringify(updatedRequest.requestItems)
+          );
+          workflow.details.updatedBy = `${account.firstName} ${account.lastName}`;
+          workflow.details.updatedAt = new Date().toISOString();
+
+          // If request status was updated, reflect in workflow
+          if (oldRequest.status !== updatedRequest.status) {
+            if (updatedRequest.status === "Approved") {
+              workflow.status = "Approved";
+            } else if (updatedRequest.status === "Rejected") {
+              workflow.status = "Rejected";
+            }
+          }
+        });
+      } else if (updatedRequest.employeeId) {
+        // No existing workflow found, create a new one
+        const employee = employees.find(
+          (e) => e.id === updatedRequest.employeeId
+        );
+
+        if (employee) {
+          const workflow = {
+            id: workflows.length
+              ? Math.max(...workflows.map((w) => w.id)) + 1
+              : 1,
+            employeeId: updatedRequest.employeeId,
+            type: "Request Approval",
+            details: {
+              requestId: updatedRequest.id,
+              requestType: updatedRequest.type,
+              requestItems: JSON.parse(
+                JSON.stringify(updatedRequest.requestItems)
+              ),
+              createdBy: `${account.firstName} ${account.lastName}`,
+              createdAt: new Date().toISOString(),
+            },
+            status: "Pending",
+          };
+
+          workflows.push(workflow);
+          console.log("Created workflow for updated request:", workflow);
+        }
+      }
+
+      localStorage.setItem(workflowsKey, JSON.stringify(workflows));
+
+      return ok(updatedRequest);
     }
 
     function deleteRequest() {

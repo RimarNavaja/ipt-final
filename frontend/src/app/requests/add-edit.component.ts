@@ -168,10 +168,14 @@ export class AddEditComponent implements OnInit {
       return;
     }
 
+    // Create a deep copy of the request to prevent reference issues
+    const requestData = JSON.parse(JSON.stringify(this.request));
+    console.log("Saving request data (deep copy):", requestData);
+
     if (this.id) {
       // Update existing request
       this.requestService
-        .update(+this.id, this.request)
+        .update(+this.id, requestData)
         .pipe(first())
         .subscribe({
           next: () => {
@@ -190,7 +194,7 @@ export class AddEditComponent implements OnInit {
     } else {
       // Create new request
       this.requestService
-        .create(this.request)
+        .create(requestData)
         .pipe(first())
         .subscribe({
           next: () => {
