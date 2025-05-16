@@ -129,6 +129,7 @@ export class FakeBackendInterceptor implements HttpInterceptor {
     return handleRoute();
 
     function handleRoute() {
+      console.log(`Handling route: ${url} (${method})`);
       switch (true) {
         case url.endsWith("/accounts/authenticate") && method === "POST":
           return authenticate();
@@ -201,6 +202,8 @@ export class FakeBackendInterceptor implements HttpInterceptor {
           return updateRequest();
         case url.match(/\/requests\/\d+$/) && method === "DELETE":
           return deleteRequest();
+        case url.match(/\/requests\/\d+$/) && method === "GET":
+          return getRequestById();
 
         default:
           // pass through any requests not handled above
@@ -789,13 +792,26 @@ export class FakeBackendInterceptor implements HttpInterceptor {
       if (!isAuthenticated()) return unauthorized();
 
       const account = currentAccount();
-      const employee = employees.find((e) => e.userId === account.id);
 
-      if (!employee) return error("Employee not found for current user");
+      // Convert employeeId to number if it exists (fix for type mismatch)
+      if (body.employeeId) {
+        body.employeeId = Number(body.employeeId);
+      }
+
+      // Only set default employeeId if not provided in request and user is not admin
+      if (!body.employeeId) {
+        // For both admin and non-admin, if employeeId is not set, use the current user's employee record
+        const employee = employees.find((e) => e.userId === account.id);
+        if (employee) {
+          body.employeeId = employee.id;
+        } else if (account.role !== Role.Admin) {
+          // Only error for non-admin users - admins can create requests without employee association
+          return error("Employee not found for current user");
+        }
+      }
 
       const request = {
         id: requests.length ? Math.max(...requests.map((r) => r.id)) + 1 : 1,
-        employeeId: employee.id,
         ...body,
       };
 
@@ -812,6 +828,11 @@ export class FakeBackendInterceptor implements HttpInterceptor {
       const reqIndex = requests.findIndex((r) => r.id === id);
 
       if (reqIndex === -1) return error("Request not found");
+
+      // Convert employeeId to number if it exists (fix for type mismatch)
+      if (body.employeeId) {
+        body.employeeId = Number(body.employeeId);
+      }
 
       requests[reqIndex] = {
         ...requests[reqIndex],
@@ -834,6 +855,25 @@ export class FakeBackendInterceptor implements HttpInterceptor {
       localStorage.setItem(requestsKey, JSON.stringify(requests));
 
       return ok({ message: "Request deleted" });
+    }
+
+    function getRequestById() {
+      if (!isAuthenticated()) return unauthorized();
+
+      console.log("Getting request by ID");
+      const id = idFromUrl();
+      console.log("Request ID from URL:", id);
+
+      const request = requests.find((r) => r.id === id);
+      console.log("Found request:", request);
+
+      if (!request) return error("Request not found");
+
+      // Important: Create a deep copy of the request to avoid reference issues
+      const requestCopy = JSON.parse(JSON.stringify(request));
+      console.log("Returning request copy:", requestCopy);
+
+      return ok(requestCopy);
     }
 
     //helper functions
@@ -895,7 +935,9 @@ export class FakeBackendInterceptor implements HttpInterceptor {
 
     function idFromUrl() {
       const urlParts = url.split("/");
-      return parseInt(urlParts[urlParts.length - 1]);
+      const id = parseInt(urlParts[urlParts.length - 1]);
+      console.log("URL parts:", urlParts, "Extracted ID:", id);
+      return id;
     }
 
     function newAccountId() {

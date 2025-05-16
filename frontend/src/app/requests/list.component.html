@@ -16,7 +16,7 @@
       <tbody>
         <tr *ngFor="let request of requests">
           <td>{{ request.type }}</td>
-          <td>{{ request.employee?.employeeId }}</td>
+          <td>{{ request.employee?.employeeId || "Not Assigned" }}</td>
           <td>
             <ul class="list-unstyled mb-0">
               <li *ngFor="let item of request.requestItems">
@@ -25,20 +25,30 @@
             </ul>
           </td>
           <td>
-            <span class="badge text-white p-2 rounded-pill" 
-                  [ngClass]="{
-                    'bg-success': request.status === 'Approved', 
-                    'bg-danger': request.status === 'Rejected',
-                    'bg-warning': request.status === 'Pending'
-                  }">
+            <span
+              class="badge text-white p-2 rounded-pill"
+              [ngClass]="{
+                'bg-success': request.status === 'Approved',
+                'bg-danger': request.status === 'Rejected',
+                'bg-warning': request.status === 'Pending'
+              }"
+            >
               {{ request.status }}
             </span>
           </td>
           <td>
-            <a *ngIf="account()?.role === 'Admin'" class="btn btn-primary" (click)="edit(request.id)">
+            <a
+              *ngIf="account()?.role === 'Admin'"
+              class="btn btn-primary"
+              (click)="edit(request.id)"
+            >
               Edit
             </a>
-            <a *ngIf="account()?.role === 'Admin'" class="btn btn-danger ms-1" (click)="delete(request.id)">
+            <a
+              *ngIf="account()?.role === 'Admin'"
+              class="btn btn-danger ms-1"
+              (click)="delete(request.id)"
+            >
               Delete
             </a>
           </td>
@@ -64,15 +74,29 @@
 </div>
 
 <!-- Add Request Modal -->
-<div class="modal fade" #addRequestModal tabindex="-1" aria-labelledby="addRequestModalLabel" aria-hidden="true">
+<div
+  class="modal fade"
+  #addRequestModal
+  tabindex="-1"
+  aria-labelledby="addRequestModalLabel"
+  aria-hidden="true"
+>
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="addRequestModalLabel">Add New Request</h5>
-        <button type="button" class="btn-close" (click)="closeAddModal()" aria-label="Close"></button>
+        <button
+          type="button"
+          class="btn-close"
+          (click)="closeAddModal()"
+          aria-label="Close"
+        ></button>
       </div>
       <div class="modal-body">
-        <app-add-edit-request (requestSaved)="handleRequestSaved()" (cancelled)="closeAddModal()"></app-add-edit-request>
+        <app-add-edit-request
+          (requestSaved)="handleRequestSaved()"
+          (cancelled)="closeAddModal()"
+        ></app-add-edit-request>
       </div>
     </div>
   </div>
