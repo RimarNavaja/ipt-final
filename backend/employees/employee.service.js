@@ -145,22 +145,34 @@ async function _delete(id) {
 async function transfer(id, params) {
   const employee = await getEmployee(id);
 
-  // Validate department exists
-  const department = await db.Department.findOne({
-    where: { name: params.newDepartment },
-  });
+  // Find the department - support both departmentId and newDepartment parameters
+  let department;
+
+  if (params.departmentId) {
+    // If departmentId is provided, use it (priority)
+    department = await db.Department.findByPk(params.departmentId);
+  } else if (params.newDepartment) {
+    // Fallback to finding by name
+    department = await db.Department.findOne({
+      where: { name: params.newDepartment },
+    });
+  }
+
   if (!department) {
     throw "Department not found";
   }
+
+  // Get the current department
+  const currentDepartment = await db.Department.findByPk(employee.departmentId);
 
   // Instead of transferring directly, create a workflow for approval
   const workflow = new db.Workflow({
     employeeId: id,
     type: "Department Transfer",
     details: {
-      previousDepartment: (await db.Department.findByPk(employee.departmentId))
-        .name,
-      newDepartment: params.newDepartment,
+      previousDepartment: currentDepartment ? currentDepartment.name : "None",
+      newDepartment: department.name,
+      newDepartmentId: department.id, // Store department ID for easier processing later
     },
     status: "Pending",
   });

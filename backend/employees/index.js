@@ -86,7 +86,9 @@ function updateSchema(req, res, next) {
 
 function transferSchema(req, res, next) {
   const schema = Joi.object({
-    newDepartment: Joi.string().required(),
-  });
+    departmentId: Joi.number(),
+    newDepartment: Joi.string(),
+  }).or("departmentId", "newDepartment");
+
   validateRequest(req, next, schema);
 }

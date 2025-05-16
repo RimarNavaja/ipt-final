@@ -94,7 +94,7 @@
       </div>
     </div>
   </div>
-  <div class="form-group">
+  <div class="form-group mt-3">
     <button type="submit" [disabled]="loading" class="btn btn-primary mr-2">
       <span
         *ngIf="loading"
@@ -102,18 +102,7 @@
       ></span>
       Update
     </button>
-    <button
-      type="button"
-      (click)="onDelete()"
-      [disabled]="deleting"
-      class="btn btn-danger mr-2"
-    >
-      <span
-        *ngIf="deleting"
-        class="spinner-border spinner-border-sm mr-1"
-      ></span>
-      Delete
-    </button>
+
     <a [routerLink]="['../']" href="#" class="btn btn-link">Cancel</a>
   </div>
 </form>

@@ -95,18 +95,29 @@ async function handleWorkflowStatusChange(workflow, newStatus) {
   if (
     workflow.type === "Department Transfer" &&
     newStatus === "Approved" &&
-    workflow.details &&
-    workflow.details.newDepartment
+    workflow.details
   ) {
     const employee = await db.Employee.findByPk(workflow.employeeId);
     if (employee) {
-      const newDepartment = await db.Department.findOne({
-        where: { name: workflow.details.newDepartment },
-      });
+      let departmentId = null;
 
-      if (newDepartment) {
+      // First try to use the department ID if available
+      if (workflow.details.newDepartmentId) {
+        departmentId = workflow.details.newDepartmentId;
+      }
+      // Otherwise look up by name
+      else if (workflow.details.newDepartment) {
+        const newDepartment = await db.Department.findOne({
+          where: { name: workflow.details.newDepartment },
+        });
+        if (newDepartment) {
+          departmentId = newDepartment.id;
+        }
+      }
+
+      if (departmentId) {
         // Update employee's department
-        employee.departmentId = newDepartment.id;
+        employee.departmentId = departmentId;
         employee.updated = Date.now();
         await employee.save();
       }

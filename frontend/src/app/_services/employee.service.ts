@@ -31,9 +31,9 @@ export class EmployeeService {
     return this.http.delete<any>(`${baseUrl}/${id}`);
   }
 
-  transfer(id: number, departmentName: string): Observable<any> {
+  transfer(id: number, departmentId: number): Observable<any> {
     return this.http.post<any>(`${baseUrl}/${id}/transfer`, {
-      newDepartment: departmentName,
+      departmentId: departmentId,
     });
   }
 }
