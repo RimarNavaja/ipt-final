@@ -15,7 +15,4 @@
 - Developer 4 - Arcenal: Implement employees and departments
 
 
-## Testers (2):
 
-- Tester 1 
-- Tester 2 
