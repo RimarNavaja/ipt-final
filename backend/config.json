@@ -1,19 +1,19 @@
 {
-    "database": {
-      "host": "localhost",
-      "port": 3306,
-      "user": "YOUR_DB_USER",
-      "password": "YOUR_DB_PASSWORD",
-      "database": "fullstack_db"
-    },
-    "secret": "THIS_IS_A_SECRET_KEY_CHANGE_IT_IN_PRODUCTION",
-    "emailFrom": "info@user-management-system.com",
-    "smtpOptions": {
-      "host": "smtp.ethereal.email",
-      "port": 587,
-      "auth": {
-        "user": "YOUR_ETHEREAL_USER",
-        "pass": "YOUR_ETHEREAL_PASSWORD"
-      }
+  "database": {
+    "host": "127.0.0.1",
+    "port": 3306,
+    "user": "root",
+    "password": "1010",
+    "database": "ipt_db"
+  },
+  "secret": "THIS_IS_A_SECRET_KEY_CHANGE_IT_IN_PRODUCTION",
+  "emailFrom": "info@user-management-system.com",
+  "smtpOptions": {
+    "host": "smtp.ethereal.email",
+    "port": 587,
+    "auth": {
+      "user": "fernando25@ethereal.email",
+      "pass": "q2zPhMMy2TnDAnWFJ9"
     }
   }
+}

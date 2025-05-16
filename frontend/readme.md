@@ -42,8 +42,8 @@ This project provides a comprehensive boilerplate for an Angular application fea
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/RimarNavaja/user-management-system
-cd user-management-system/frontend
+git clone https://github.com/RimarNavaja/ipt-final
+cd ipt-final/frontend
 ```
 
 2. Install dependencies:

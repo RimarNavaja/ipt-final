@@ -45,6 +45,9 @@ const defaultAccounts = [
   },
 ];
 
+// Clear localStorage accounts for testing purposes (remove in production)
+localStorage.removeItem(accountsKey);
+
 // Get accounts from localStorage or use defaults
 let storedAccounts = JSON.parse(localStorage.getItem(accountsKey)) || [];
 // Ensure default accounts always exist
@@ -100,7 +103,7 @@ const defaultEmployees = [
     employeeId: "EMP002",
     userId: 2,
     position: "Designer",
-    departmentId: 1, // Engineering - changed from 2 to 1 to match images
+    departmentId: 1, // Engineering -
     hireDate: "2025-02-01",
     status: "Active",
   },
@@ -279,11 +282,22 @@ export class FakeBackendInterceptor implements HttpInterceptor {
     //route functions
     function authenticate() {
       const { email, password } = body;
+      console.log("Attempting to authenticate:", email);
+
       const account = accounts.find(
         (x) => x.email === email && x.password === password && x.isVerified
       );
 
+      console.log("Found account:", account);
+
       if (!account) return error("Email or password is incorrect");
+
+      // Check if account is active
+      if (account.isActive === false) {
+        return error(
+          "Your account is inactive. Please contact an administrator."
+        );
+      }
 
       //add refresh token to account
       account.refreshTokens.push(generateRefreshToken());
@@ -1138,7 +1152,7 @@ export class FakeBackendInterceptor implements HttpInterceptor {
         role,
         dateCreated,
         isVerified,
-        isActive,
+        isActive: isActive !== undefined ? isActive : true, // Ensure isActive has a default value
       };
     }
 

@@ -1,9 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
-import { EmployeeService, DepartmentService } from '@app/_services';
+import { EmployeeService, DepartmentService, AlertService } from '@app/_services';
 import { first } from 'rxjs/operators';
-import { HttpClient } from '@angular/common/http';
-import { environment } from '@environments/environment';
 
 @Component({
   templateUrl: './transfer.component.html',
@@ -34,9 +32,9 @@ export class TransferComponent implements OnInit {
   constructor(
     private employeeService: EmployeeService,
     private departmentService: DepartmentService,
+    private alertService: AlertService,
     private router: Router,
-    private route: ActivatedRoute,
-    private http: HttpClient
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit() {
@@ -74,27 +72,20 @@ export class TransferComponent implements OnInit {
     // Ensure the ID is numeric
     const departmentId = Number(this.selectedDepartmentId);
     
-    // Get the previous department name
-    const previousDept = this.departments.find(d => d.id === +this.employee.departmentId);
+    // Get the new department name
     const newDept = this.departments.find(d => d.id === departmentId);
     
-    // Create a workflow entry for this transfer
-    const workflowsUrl = environment.apiUrl ? `${environment.apiUrl}/workflows` : '/workflows';
-    const workflow = {
-      employeeId: +this.id,
-      type: 'Department Transfer',
-      details: {
-        previousDepartment: previousDept ? previousDept.name : 'Unknown',
-        newDepartment: newDept ? newDept.name : 'Unknown',
-        transferDate: new Date().toISOString()
-      },
-      status: 'Pending'
-    };
+    if (!newDept) {
+      this.errorMessage = 'Selected department not found';
+      return;
+    }
     
-    this.http.post(workflowsUrl, workflow)
+    // Use the employee service to handle the transfer
+    this.employeeService.transfer(+this.id, newDept.name)
       .pipe(first())
       .subscribe({
         next: () => {
+          this.alertService.success('Transfer request created successfully', { keepAfterRouteChange: true });
           this.router.navigate(['employees']);
         },
         error: error => {

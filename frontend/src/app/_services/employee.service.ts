@@ -1,11 +1,13 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { environment } from '@environments/environment';
+import { Injectable } from "@angular/core";
+import { HttpClient } from "@angular/common/http";
+import { Observable } from "rxjs";
+import { environment } from "@environments/environment";
 
-const baseUrl = environment.apiUrl ? `${environment.apiUrl}/employees` : `/employees`;
+const baseUrl = environment.apiUrl
+  ? `${environment.apiUrl}/employees`
+  : `/employees`;
 
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class EmployeeService {
   constructor(private http: HttpClient) {}
 
@@ -29,7 +31,9 @@ export class EmployeeService {
     return this.http.delete<any>(`${baseUrl}/${id}`);
   }
 
-  transfer(id: number, departmentId: number): Observable<any> {
-    return this.http.post<any>(`${baseUrl}/${id}/transfer`, { departmentId });
+  transfer(id: number, departmentName: string): Observable<any> {
+    return this.http.post<any>(`${baseUrl}/${id}/transfer`, {
+      newDepartment: departmentName,
+    });
   }
-} 
+}
