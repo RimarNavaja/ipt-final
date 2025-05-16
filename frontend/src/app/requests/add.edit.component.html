@@ -1,5 +1,7 @@
 <div class="card">
-  <div class="card-header">{{ id ? "Edit" : "Add" }} Request</div>
+  <div class="card-header">
+    <h4>{{ id ? "Edit" : "Add" }} Request</h4>
+  </div>
   <div class="card-body">
     <div class="alert alert-danger" *ngIf="errorMessage">
       {{ errorMessage }}
@@ -10,6 +12,17 @@
         <option>Equipment</option>
         <option>Leave</option>
         <option>Resources</option>
+      </select>
+    </div>
+    <!-- Employee dropdown only for admins -->
+    <div class="mb-3" *ngIf="isAdmin">
+      <label class="form-label">Employee</label>
+      <select class="form-select" [(ngModel)]="request.employeeId">
+        <option [ngValue]="null">-- Select Employee --</option>
+        <option *ngFor="let employee of employees" [ngValue]="employee.id">
+          {{ employee.employeeId }} - {{ employee.position }} (ID:
+          {{ employee.id }})
+        </option>
       </select>
     </div>
     <div class="mb-3">
@@ -29,6 +42,7 @@
               type="number"
               class="form-control"
               [(ngModel)]="item.quantity"
+              min="1"
             />
           </div>
           <div class="col-md-2 d-flex align-items-end">
@@ -41,8 +55,24 @@
       <button class="btn btn-secondary" (click)="addItem()">Add Item</button>
     </div>
     <div class="text-center">
-      <button class="btn btn-primary me-2" (click)="save()">Save</button>
-      <button class="btn btn-secondary" (click)="cancel()">Cancel</button>
+      <button
+        class="btn btn-primary me-2"
+        [disabled]="submitted"
+        (click)="save()"
+      >
+        <span
+          *ngIf="submitted"
+          class="spinner-border spinner-border-sm me-1"
+        ></span>
+        Save
+      </button>
+      <button
+        class="btn btn-secondary"
+        [disabled]="submitted"
+        (click)="cancel()"
+      >
+        Cancel
+      </button>
     </div>
   </div>
 </div>
