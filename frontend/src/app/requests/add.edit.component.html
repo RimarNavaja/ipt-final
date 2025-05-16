@@ -18,10 +18,9 @@
     <div class="mb-3" *ngIf="isAdmin">
       <label class="form-label">Employee</label>
       <select class="form-select" [(ngModel)]="request.employeeId">
-        <option [ngValue]="null">-- Select Employee --</option>
+        <option [ngValue]="null" disabled>-- Select Employee --</option>
         <option *ngFor="let employee of employees" [ngValue]="employee.id">
-          {{ employee.employeeId }} - {{ employee.position }} (ID:
-          {{ employee.id }})
+          {{ employee.employeeId }} - {{ employee.position }}
         </option>
       </select>
     </div>

@@ -1,9 +1,14 @@
 <div class="card">
   <div class="card-header">
-    <h2 class="mb-0">WORKFLOWS FOR EMPLOYEE {{employee?.employeeId || employeeId}}</h2>
+    <h2 class="mb-0">
+      WORKFLOWS FOR EMPLOYEE {{employee?.employeeId || employeeId}}
+    </h2>
   </div>
   <div class="card-body">
-    <table class="table table-striped" *ngIf="workflows && workflows.length > 0">
+    <table
+      class="table table-striped"
+      *ngIf="workflows && workflows.length > 0"
+    >
       <thead>
         <tr>
           <th>Type</th>
@@ -17,22 +22,51 @@
           <td>{{workflow.type}}</td>
           <td>
             <ng-container *ngIf="workflow.type === 'Department Transfer'">
-              Employee transferred from {{workflow.details?.previousDepartment}} to {{workflow.details?.newDepartment}}.
+              Employee transferred from {{workflow.details?.previousDepartment}}
+              to {{workflow.details?.newDepartment}}.
             </ng-container>
             <ng-container *ngIf="workflow.type === 'Onboarding'">
               {{workflow.details?.task}}
             </ng-container>
-            <ng-container *ngIf="workflow.type !== 'Department Transfer' && workflow.type !== 'Onboarding'">
+            <ng-container *ngIf="workflow.type === 'Request Approval'">
+              <div>
+                <strong>Request Type:</strong> {{workflow.details?.requestType}}
+              </div>
+              <div
+                *ngIf="workflow.details?.requestItems && workflow.details?.requestItems.length > 0"
+              >
+                <strong>Items:</strong>
+                <ul class="mb-0 ps-3">
+                  <li *ngFor="let item of workflow.details?.requestItems">
+                    {{item.name}} (Qty: {{item.quantity}})
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <small>Created by: {{workflow.details?.createdBy}}</small>
+              </div>
+              <div>
+                <small
+                  >Created at: {{workflow.details?.createdAt |
+                  date:'short'}}</small
+                >
+              </div>
+            </ng-container>
+            <ng-container
+              *ngIf="workflow.type !== 'Department Transfer' && workflow.type !== 'Onboarding' && workflow.type !== 'Request Approval'"
+            >
               {{workflow.details | json}}
             </ng-container>
           </td>
           <td>
-            <span class="badge text-white p-2 rounded-pill" 
-                  [ngClass]="{
+            <span
+              class="badge text-white p-2 rounded-pill"
+              [ngClass]="{
                     'bg-success': workflow.status === 'Approved', 
                     'bg-danger': workflow.status === 'Rejected',
                     'bg-warning': workflow.status === 'Pending'
-                  }">
+                  }"
+            >
               {{workflow.status}}
             </span>
           </td>
@@ -50,15 +84,18 @@
         </tr>
       </tbody>
     </table>
-    
-    <div *ngIf="!loading && (!workflows || workflows.length === 0)" class="alert alert-info text-center p-5">
+
+    <div
+      *ngIf="!loading && (!workflows || workflows.length === 0)"
+      class="alert alert-info text-center p-5"
+    >
       <p class="mb-0">No workflows found for this employee.</p>
     </div>
-    
+
     <div *ngIf="loading" class="text-center p-5">
       <span class="spinner-border spinner-border-lg"></span>
     </div>
-    
+
     <div class="mt-3">
       <a routerLink="/employees" class="btn btn-secondary">Back to Employees</a>
     </div>
