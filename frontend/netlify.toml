@@ -1,0 +1,4 @@
+[build]
+  base = "frontend"
+  command = "npm install && node ./node_modules/@angular/cli/bin/ng build"
+  publish = "dist"
