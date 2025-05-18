@@ -1,6 +1,6 @@
 [build]
   base = "frontend"
-  command = "npm ci && npm list @angular-devkit/build-angular || npm i --save @angular-devkit/build-angular && npm run build"
+  command = "npm ci && node ./node_modules/@angular/cli/bin/ng build --configuration production"
   publish = "dist"
 
 [build.environment]
