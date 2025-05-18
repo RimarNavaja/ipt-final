@@ -1,0 +1,7 @@
+[build]
+  base = "frontend"
+  command = "npm ci && node ./node_modules/@angular/cli/bin/ng build --configuration production"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "18" 
