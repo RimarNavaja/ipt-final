@@ -1,4 +1,4 @@
-const config = require("config.json");
+const config = require("config.js");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
@@ -158,7 +158,7 @@ async function getAll() {
 
 async function getActive() {
   const accounts = await db.Account.findAll({
-    where: { isActive: true }
+    where: { isActive: true },
   });
   return accounts.map((x) => basicDetails(x));
 }
