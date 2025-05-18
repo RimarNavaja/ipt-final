@@ -226,6 +226,8 @@ export class FakeBackendInterceptor implements HttpInterceptor {
           return resetPassword();
         case url.endsWith("/accounts") && method === "GET":
           return getAccounts();
+        case url.endsWith("/accounts/active") && method === "GET":
+          return getActiveAccounts();
         case url.match(/\/accounts\/\d+$/) && method === "GET":
           return getAccountById();
         case url.endsWith("/accounts") && method === "POST":
@@ -510,6 +512,17 @@ export class FakeBackendInterceptor implements HttpInterceptor {
       return ok(accounts.map((x) => basicDetails(x)));
     }
 
+    function getActiveAccounts() {
+      if (!isAuthenticated()) return unauthorized();
+
+      // Return only active accounts for dropdowns in employee forms
+      const activeAccounts = accounts
+        .filter((acc) => acc.isActive !== false)
+        .map((x) => basicDetails(x));
+
+      return ok(activeAccounts);
+    }
+
     function getAccountById() {
       if (!isAuthenticated()) return unauthorized();
 
@@ -591,7 +604,24 @@ export class FakeBackendInterceptor implements HttpInterceptor {
     // Employee functions
     function getEmployees() {
       if (!isAuthenticated()) return unauthorized();
-      return ok(employees);
+
+      // Return employees with department and account information for display
+      const enrichedEmployees = employees.map((employee) => {
+        const department = departments.find(
+          (d) => d.id === employee.departmentId
+        );
+        const account = accounts.find((a) => a.id === employee.userId);
+
+        return {
+          ...employee,
+          departmentName: department ? department.name : "Unknown Department",
+          accountName: account
+            ? `${account.firstName} ${account.lastName}`
+            : "Unknown Account",
+        };
+      });
+
+      return ok(enrichedEmployees);
     }
 
     function createEmployee() {
@@ -619,7 +649,21 @@ export class FakeBackendInterceptor implements HttpInterceptor {
 
       if (!employee) return error("Employee not found");
 
-      return ok(employee);
+      // Add referenced entities for dropdown selection in forms
+      const department = departments.find(
+        (d) => d.id === employee.departmentId
+      );
+      const account = accounts.find((a) => a.id === employee.userId);
+
+      const enrichedEmployee = {
+        ...employee,
+        departmentName: department ? department.name : "Unknown Department",
+        accountName: account
+          ? `${account.firstName} ${account.lastName}`
+          : "Unknown Account",
+      };
+
+      return ok(enrichedEmployee);
     }
 
     function updateEmployee() {
