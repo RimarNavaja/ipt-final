@@ -21,5 +21,7 @@ module.exports = {
     .split(",")
     .filter((origin) => origin !== "") || [
     "https://ipt-final-navaja.netlify.app",
+    "http://localhost:4200",
+    "http://localhost:3000",
   ],
 };
