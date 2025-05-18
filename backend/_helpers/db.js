@@ -7,18 +7,32 @@ module.exports = db = {};
 initialize();
 
 async function initialize() {
-  // create db if it doesn't already exist
+  // Extract database config
   const { host, port, user, password, database } = config.database;
-  const connection = await mysql.createConnection({
-    host,
-    port,
-    user,
-    password,
-  });
-  await connection.query(`CREATE DATABASE IF NOT EXISTS \`${database}\`;`);
+
+  // Skip database creation for remote hosts
+  if (host !== "localhost" && host !== "127.0.0.1") {
+    console.log(`Connecting to remote database ${database} on ${host}`);
+  } else {
+    // Only try to create database when running locally
+    try {
+      const connection = await mysql.createConnection({
+        host,
+        port,
+        user,
+        password,
+      });
+      await connection.query(`CREATE DATABASE IF NOT EXISTS \`${database}\`;`);
+      await connection.end();
+    } catch (err) {
+      console.error("Failed to create database:", err.message);
+    }
+  }
 
   // connect to db
   const sequelize = new Sequelize(database, user, password, {
+    host: host,
+    port: port,
     dialect: "mysql",
     logging: console.log,
   });
