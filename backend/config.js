@@ -17,4 +17,9 @@ module.exports = {
     },
   },
   isProduction: process.env.NODE_ENV === "production",
+  allowedOrigins: (process.env.ALLOWED_ORIGINS || "")
+    .split(",")
+    .filter((origin) => origin !== "") || [
+    "https://ipt-final-navaja.netlify.app",
+  ],
 };
